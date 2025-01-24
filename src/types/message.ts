@@ -1,6 +1,6 @@
 export interface Message {
     id: number;
     text: string;
-    sender: 'computer' | 'user';
+    sender: 'RESUMER' | 'user';
     timestamp: Date;
 } 

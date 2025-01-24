@@ -9,6 +9,7 @@ const AppContent: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const { login, isAuthenticated } = useAuth();
     const messageCount = useRef(0);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
@@ -38,12 +39,18 @@ const AppContent: React.FC = () => {
                 onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
             />
             <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-                <ChatInterface onMessageSend={handleMessageSend} />
+                <ChatInterface 
+                    isLoggedIn={isLoggedIn} 
+                    onLogin={() => {
+                        setIsLoggedIn(true);
+                        setShowLoginModal(false);
+                    }} 
+                />
                 <LoginModal 
                     isOpen={showLoginModal}
                     onClose={() => setShowLoginModal(false)}
-                    onSuccess={(userData) => {
-                        login(userData);
+                    onSuccess={() => {
+                        setIsLoggedIn(true);
                         setShowLoginModal(false);
                     }}
                 />
