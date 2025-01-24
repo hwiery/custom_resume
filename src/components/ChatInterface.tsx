@@ -160,7 +160,7 @@ const Title = styled.h1`
 const InputContainer = styled.div`
     position: fixed;
     bottom: 0;
-    left: 55%;
+    left: 60%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 760px;
