@@ -44,7 +44,7 @@ const MessageContainer = styled.div`
     flex-direction: column;
     gap: 16px;
     width: 100%;
-    padding: 0 20px 120px 20px;
+    padding: 0 20px;
 `;
 
 const MessageWrapper = styled.div<{ isUser: boolean }>`

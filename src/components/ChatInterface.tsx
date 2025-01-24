@@ -133,6 +133,7 @@ const ChatContainer = styled.div`
     max-width: 760px;
     margin: 0 auto;
     min-height: 100vh;
+    position: relative;
 `;
 
 const MainContent = styled.div`
@@ -141,13 +142,28 @@ const MainContent = styled.div`
     flex-direction: column;
     flex: 1;
     overflow-y: auto;
-    height: calc(100vh - 120px);
+    padding-bottom: 320px;
+    height: 100vh;
+    
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+        background: #F5F1E6;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+        background: #E8E1D1;
+        border-radius: 4px;
+    }
 `;
 
 const Header = styled.header`
     padding: 40px 0;
     text-align: center;
     width: 100%;
+    background: white;
 `;
 
 const Title = styled.h1`
@@ -175,7 +191,7 @@ const InputContainer = styled.div`
     & > form {
         width: 100%;
         max-width: 760px;
-        padding: 0 20px;
+        padding: 20px;
     }
 `;
 
