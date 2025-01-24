@@ -97,15 +97,15 @@ def ensure_conversion_tools():
     missing_tools = []
     
     # unoconv 확인
-    if not subprocess.run(['which', 'unoconv'], capture_output=True).returncode == 0:
+    if not subprocess.run(['where', 'unoconv'], capture_output=True).returncode == 0:
         missing_tools.append('unoconv')
     
     # libreoffice 확인
-    if not subprocess.run(['which', 'soffice'], capture_output=True).returncode == 0:
+    if not subprocess.run(['where', 'soffice'], capture_output=True).returncode == 0:
         missing_tools.append('libreoffice')
     
     # pandoc 확인
-    if not subprocess.run(['which', 'pandoc'], capture_output=True).returncode == 0:
+    if not subprocess.run(['where', 'pandoc'], capture_output=True).returncode == 0:
         missing_tools.append('pandoc')
     
     if missing_tools:
@@ -129,10 +129,18 @@ def create_word_from_md(md_file):
     with open(md_filepath, "r", encoding="utf-8") as f:
         md_content = f.read()
 
-    filename = Path(md_filepath).stem
-    parts = filename.split("_")
-    company_name = parts[-1] if len(parts) >= 2 else "Unknown"
-    output_filename = f"이력서_양호영_{company_name}.docx"
+    # 이름과 회사명 추출
+    lines = md_content.splitlines()
+    name = "Unknown"
+    company_name = "Unknown"
+
+    for line in lines:
+        if line.startswith("**이름**:"):
+            name = line.split(":")[1].strip()  # 이름 추출
+        elif line.startswith("**회사명**:"):
+            company_name = line.split(":")[1].strip()  # 회사명 추출
+
+    output_filename = f"이력서_{name}_{company_name}.docx"  # 이름과 회사명을 포함한 파일명
     output_path = Path(OUTPUT_DOCX_DIR) / output_filename
 
     doc = Document()
@@ -165,6 +173,12 @@ def create_word_from_md(md_file):
     normal_font.name = '맑은 고딕'
     normal_font.size = Pt(base_font_size)
     
+    # 이름 추가
+    p = doc.add_paragraph(style='CustomName')
+    p.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+    p.add_run(name).bold = True
+    doc.add_paragraph()  # 빈 줄 추가
+
     sections = ["핵심역량", "경력", "학력", "수상 및 기타", "병역"]
     first_line = True
     empty_line_count = 0
@@ -183,11 +197,6 @@ def create_word_from_md(md_file):
             empty_line_count = 0
             
         if first_line:
-            # 이름
-            p = doc.add_paragraph(style='CustomName')
-            p.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            p.add_run(line).bold = True
-            doc.add_paragraph()  # 빈 줄 추가
             first_line = False
             continue
             
