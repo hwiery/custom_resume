@@ -1,0 +1,57 @@
+my-app/
+├── node_modules/
+├── public/
+│   ├── index.html
+│   ├── favicon.ico
+│   ├── manifest.json
+│   └── robots.txt
+├── src/
+│   ├── api/
+│   │   └── # API 관련 로직 파일들
+│   ├── components/
+│   │   ├── ChatInterface.tsx
+│   │   ├── MessageInput.tsx
+│   │   └── MessageList.tsx
+│   ├── context/
+│   │   └── # Context API 관련 파일들
+│   ├── hooks/
+│   │   └── # 커스텀 훅 파일들
+│   ├── pages/
+│   │   └── # 페이지 컴포넌트 파일들
+│   ├── styles/
+│   │   └── chat.css
+│   ├── utils/
+│   │   └── # 유틸리티 함수 파일들
+│   ├── App.tsx
+│   └── index.tsx
+├── tests/
+│   └── # 테스트 파일들
+├── .env
+├── .gitignore
+├── .service_guide
+├── .design_guide
+├── package.json
+├── package-lock.json
+├── README.md
+├── tsconfig.json
+└── .folder
+
+
+
+
+설명:
+1. public/ : 정적 파일들이 위치
+2. src/
+   - api/ : 외부 API 통신 관련 로직
+   - components/ : 재사용 가능한 컴포넌트
+   - context/ : 전역 상태 관리
+   - hooks/ : 커스텀 React 훅
+   - pages/ : 페이지 단위 컴포넌트
+   - styles/ : CSS 파일들
+   - utils/ : 유틸리티 함수들
+3. tests/ : 테스트 코드
+4. 설정 파일들:
+   - .env : 환경 변수
+   - tsconfig.json : TypeScript 설정
+   - package.json : 프로젝트 의존성 관리
+

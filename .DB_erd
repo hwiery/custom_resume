@@ -1,0 +1,164 @@
+# ERD (Entity-Relationship Diagram)
+아래는 서비스의 ERD를 간략히 표현한 것입니다. 각 엔티티와 관계를 설명드리겠습니다.
+
++-----------------+       +-----------------+       +-----------------+
+|     Users       |       |    Resumes      |       |  JobPostings    |
++-----------------+       +-----------------+       +-----------------+
+| user_id (PK)    |<------| user_id (FK)    |       | job_id (PK)     |
+| email           |       | resume_id (PK)  |       | user_id (FK)    |
+| password_hash   |       | title           |       | job_link        |
+| google_id       |       | content         |       | keywords        |
+| created_at      |       | template_id (FK)|       | created_at      |
+| updated_at      |       | created_at      |       +-----------------+
++-----------------+       | updated_at      |
+                          +-----------------+
+                                |
+                                |
+                                v
+                          +-----------------+
+                          |  ResumeFiles    |
+                          +-----------------+
+                          | file_id (PK)    |
+                          | resume_id (FK)  |
+                          | file_type       |
+                          | file_url        |
+                          | created_at      |
+                          +-----------------+
+
+                          
+                          3. 데이터베이스 구조
+
+# MongoDB를 사용하고, Atlas를 통해 연결한다는 점을 고려하여, **4개의 주요 컬렉션(User, ChatHistory, ResumeFile, JobPosting)**을 중심으로 데이터베이스 구조를 재정리하겠습니다. MongoDB는 NoSQL이기 때문에 유연한 스키마를 활용하여 각 컬렉션을 설계할 수 있습니다. 아래는 각 컬렉션의 구조와 관계를 상세히 설명한 내용입니다.
+
+1. 컬렉션 구조
+1) Users 컬렉션
+사용자의 기본 정보를 저장합니다.
+
+소셜 로그인(Google)을 위해 googleId 필드를 추가합니다.
+
+json
+Copy
+{
+  "_id": ObjectId("유저 고유 ID"),
+  "email": "user@example.com", // 사용자 이메일
+  "passwordHash": "hashed_password", // 소셜 로그인 사용 시 생략 가능
+  "googleId": "google_oauth_id", // Google 로그인용
+  "createdAt": ISODate("2023-10-01T00:00:00Z"), // 생성 시간
+  "updatedAt": ISODate("2023-10-01T00:00:00Z") // 수정 시간
+}
+2) ChatHistory 컬렉션
+사용자와 AI 간의 채팅 기록을 저장합니다.
+
+각 메시지는 사용자 또는 AI가 보낸 메시지로 구분됩니다.
+
+json
+Copy
+{
+  "_id": ObjectId("채팅 기록 고유 ID"),
+  "userId": ObjectId("유저 고유 ID"), // Users 컬렉션 참조
+  "messages": [
+    {
+      "sender": "user", // "user" 또는 "ai"
+      "text": "안녕하세요, 이력서를 작성하려고 합니다.", // 메시지 내용
+      "timestamp": ISODate("2023-10-01T00:00:00Z") // 메시지 전송 시간
+    },
+    {
+      "sender": "ai",
+      "text": "어떤 분야의 이력서를 작성하시나요?",
+      "timestamp": ISODate("2023-10-01T00:00:01Z")
+    }
+  ],
+  "createdAt": ISODate("2023-10-01T00:00:00Z"), // 채팅 시작 시간
+  "updatedAt": ISODate("2023-10-01T00:00:00Z") // 마지막 메시지 시간
+}
+3) ResumeFile 컬렉션
+생성된 이력서 파일(PDF, DOCX) 정보를 저장합니다.
+
+파일은 AWS S3 또는 Google Cloud Storage에 저장하고, 해당 파일의 URL을 저장합니다.
+
+json
+Copy
+{
+  "_id": ObjectId("파일 고유 ID"),
+  "userId": ObjectId("유저 고유 ID"), // Users 컬렉션 참조
+  "resumeTitle": "프론트엔드 개발자 이력서", // 이력서 제목
+  "fileType": "pdf", // 파일 형식 (pdf, docx)
+  "fileUrl": "https://storage.example.com/resumes/123.pdf", // 파일 저장 경로
+  "createdAt": ISODate("2023-10-01T00:00:00Z") // 생성 시간
+}
+4) JobPosting 컬렉션
+사용자가 입력한 채용 공고 정보를 저장합니다.
+
+채용 공고 분석 결과(키워드, 매칭 점수 등)도 함께 저장합니다.
+
+json
+Copy
+{
+  "_id": ObjectId("채용 공고 고유 ID"),
+  "userId": ObjectId("유저 고유 ID"), // Users 컬렉션 참조
+  "jobLink": "https://example.com/job/123", // 채용 공고 링크
+  "keywords": ["프론트엔드", "React", "JavaScript"], // 분석된 키워드
+  "analysisResult": {
+    "matchingScore": 85, // 매칭 점수
+    "suggestedImprovements": ["React 경험 강조", "프로젝트 설명 추가"]
+  },
+  "createdAt": ISODate("2023-10-01T00:00:00Z") // 생성 시간
+}
+2. 컬렉션 간의 관계
+Users ↔ ChatHistory
+
+한 명의 사용자는 여러 개의 채팅 기록을 가질 수 있습니다. (1:N 관계)
+
+ChatHistory 컬렉션의 userId는 Users 컬렉션의 _id를 참조합니다.
+
+Users ↔ ResumeFile
+
+한 명의 사용자는 여러 개의 이력서 파일을 생성할 수 있습니다. (1:N 관계)
+
+ResumeFile 컬렉션의 userId는 Users 컬렉션의 _id를 참조합니다.
+
+Users ↔ JobPosting
+
+한 명의 사용자는 여러 개의 채용 공고를 분석할 수 있습니다. (1:N 관계)
+
+JobPosting 컬렉션의 userId는 Users 컬렉션의 _id를 참조합니다.
+
+3. MongoDB Atlas 연결 및 설정
+Atlas 클러스터 생성
+
+MongoDB Atlas에서 새로운 클러스터를 생성합니다.
+
+무료 티어(M0)를 사용하여 초기 비용을 절감할 수 있습니다.
+
+데이터베이스 및 컬렉션 생성
+
+Atlas 대시보드에서 데이터베이스와 컬렉션을 생성합니다.
+
+위에서 정의한 4개의 컬렉션(Users, ChatHistory, ResumeFile, JobPosting)을 생성합니다.
+
+연결 문자열 설정
+
+Atlas에서 제공하는 연결 문자열을 사용하여 애플리케이션과 MongoDB를 연결합니다.
+
+예: mongodb+srv://<username>:<password>@cluster0.mongodb.net/<dbname>?retryWrites=true&w=majority
+
+보안 설정
+
+IP 화이트리스트를 설정하여 허용된 IP만 접근할 수 있도록 합니다.
+
+사용자 인증을 위해 passwordHash를 안전하게 저장합니다.
+
+4. 추가 고려사항
+파일 저장
+
+이력서 파일은 MongoDB가 아닌 AWS S3 또는 Google Cloud Storage에 저장합니다.
+
+파일의 메타데이터(파일 URL, 파일 형식 등)만 MongoDB에 저장합니다.
+
+채팅 기록 관리
+
+채팅 기록이 많아질 경우, 오래된 기록은 별도의 아카이브 컬렉션으로 이동하여 성능을 유지합니다.
+
+인덱싱
+
+자주 검색되는 필드(예: Users 컬렉션의 email, JobPosting 컬렉션의 userId)에 인덱스를 추가하여 검색 성능을 향상시킵니다.

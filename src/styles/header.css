@@ -1,0 +1,120 @@
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1001;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo {
+    height: 32px;
+    width: auto;
+}
+
+.service-title {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: #333;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.menu-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+/* 반응형 스타일 */
+@media (min-width: 1024px) {
+    .mobile-only {
+        display: none;
+    }
+
+    .main-content {
+        margin-left: 300px !important;
+    }
+
+    .sidebar {
+        transform: none !important;
+    }
+}
+
+@media (max-width: 1023px) {
+    .desktop-only {
+        display: none;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+    }
+
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+}
+
+/* 모바일 최적화 */
+@media (max-width: 480px) {
+    .app-header {
+        padding: 0.5rem 1rem;
+    }
+
+    .logo {
+        height: 24px;
+    }
+
+    .service-title {
+        font-size: 20px;
+    }
+}
+
+/* 기존 스타일에 추가 */
+.hamburger-icon {
+    width: 24px;
+    height: 18px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hamburger-icon span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background-color: #333;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+} 
