@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { FaBars, FaPlus, FaCog, FaEnvelope, FaSignOutAlt } from 'react-icons/fa';
+import { FaBars, FaPlus, FaCog, FaSignOutAlt, FaFileAlt, FaShieldAlt, FaEnvelope } from 'react-icons/fa';
 import { GoogleLogin } from '@react-oauth/google';
+import { Link } from 'react-router-dom';
 import Logo from './Logo';
+import SettingsModal from './SettingsModal';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -18,6 +20,7 @@ interface HistoryItem {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     const { isAuthenticated, user, login, logout } = useAuth();
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [histories] = useState<HistoryItem[]>([
         { id: 1, preview: "신입 개발자 이력서 작성하기", timestamp: new Date() },
         { id: 2, preview: "프론트엔드 개발자 포트폴리오", timestamp: new Date() },
@@ -32,9 +35,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         try {
             setShowUserMenu(false);
             if (isOpen) {
-                onToggle(); // 사이드바 닫기
+                onToggle();
             }
-            logout(); // 즉시 로그아웃 실행
+            logout();
         } catch (error) {
             console.error('로그아웃 처리 중 오류:', error);
         }
@@ -45,28 +48,150 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     };
 
     const handleSettingsClick = () => {
-        console.log('Settings clicked');
         setShowUserMenu(false);
-    };
-
-    const handleContactClick = () => {
-        console.log('Contact us clicked');
-        setShowUserMenu(false);
+        setShowSettingsModal(true);
     };
 
     return (
         <>
-            {/* PC 뷰에서의 접힌 상태 햄버거 버튼 */}
             <button className={`desktop-menu-button ${isOpen ? 'hidden' : ''}`} onClick={onToggle}>
                 <FaBars />
             </button>
 
-            {/* 모바일 뷰에서의 햄버거 버튼 */}
             <button className={`mobile-menu-button ${isOpen ? 'hidden' : ''}`} onClick={onToggle}>
                 <FaBars />
             </button>
             
             <div className={`sidebar ${isOpen ? 'open' : ''}`}>
+                <style>
+                    {`
+                    .sidebar {
+                        display: flex;
+                        flex-direction: column;
+                        height: 100%;
+                        background-color: #ffffff;
+                        color: #333333;
+                        width: 280px;
+                        transition: all 0.3s ease;
+                        border-right: 1px solid #e5e7eb;
+                    }
+                    
+                    .sidebar-content {
+                        flex: 1;
+                        overflow-y: auto;
+                        padding: 1rem;
+                    }
+                    
+                    .sidebar-links {
+                        padding: 2rem 1rem 1rem;
+                        border-top: 1px solid rgba(0, 0, 0, 0.1);
+                        margin-top: 80px;
+                    }
+                    
+                    .sidebar-link {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        padding: 0.75rem;
+                        color: #4b5563;
+                        text-decoration: none;
+                        transition: all 0.2s;
+                        border-radius: 6px;
+                    }
+                    
+                    .sidebar-link:hover {
+                        color: #1a1a1a;
+                        background-color: rgba(0, 0, 0, 0.05);
+                    }
+                    
+                    .sidebar-footer {
+                        border-top: 1px solid rgba(0, 0, 0, 0.1);
+                        padding: 1rem;
+                    }
+
+                    .user-profile {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.75rem;
+                        cursor: pointer;
+                        padding: 0.5rem;
+                        border-radius: 6px;
+                        transition: background-color 0.2s;
+                    }
+
+                    .user-profile:hover {
+                        background-color: rgba(0, 0, 0, 0.05);
+                    }
+
+                    .user-avatar {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 50%;
+                    }
+
+                    .user-avatar-placeholder {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 50%;
+                        background-color: #0A66C2;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-weight: bold;
+                    }
+
+                    .user-info {
+                        flex: 1;
+                        min-width: 0;
+                    }
+
+                    .user-name {
+                        font-weight: 600;
+                        color: #1a1a1a;
+                        margin: 0;
+                    }
+
+                    .user-email {
+                        font-size: 0.875rem;
+                        color: #4b5563;
+                        margin: 0;
+                        text-overflow: ellipsis;
+                        overflow: hidden;
+                        white-space: nowrap;
+                    }
+
+                    .user-menu {
+                        position: absolute;
+                        bottom: 100%;
+                        left: 1rem;
+                        right: 1rem;
+                        background-color: #ffffff;
+                        border-radius: 6px;
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                        margin-bottom: 0.5rem;
+                        border: 1px solid #e5e7eb;
+                    }
+
+                    .menu-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        width: 100%;
+                        padding: 0.75rem 1rem;
+                        border: none;
+                        background: none;
+                        color: #4b5563;
+                        cursor: pointer;
+                        transition: background-color 0.2s;
+                    }
+
+                    .menu-item:hover {
+                        background-color: rgba(0, 0, 0, 0.05);
+                        color: #1a1a1a;
+                    }
+                    `}
+                </style>
                 <div className="sidebar-header">
                     <Logo />
                     <button className="toggle-button" onClick={onToggle}>
@@ -91,6 +216,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                                     ))}
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="sidebar-links">
+                            <Link to="/contact" className="sidebar-link">
+                                <FaEnvelope /> Contact Us
+                            </Link>
+                            <Link to="/terms" className="sidebar-link">
+                                <FaFileAlt /> Terms of Use
+                            </Link>
+                            <Link to="/privacy" className="sidebar-link">
+                                <FaShieldAlt /> Privacy
+                            </Link>
                         </div>
 
                         <div className="sidebar-footer">
@@ -119,9 +256,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                                     <button className="menu-item" onClick={handleSettingsClick}>
                                         <FaCog /> Settings
                                     </button>
-                                    <button className="menu-item" onClick={handleContactClick}>
-                                        <FaEnvelope /> Contact Us
-                                    </button>
                                     <button className="menu-item" onClick={handleLogoutClick}>
                                         <FaSignOutAlt /> Logout
                                     </button>
@@ -146,8 +280,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                     </div>
                 )}
             </div>
+            <SettingsModal 
+                isOpen={showSettingsModal} 
+                onClose={() => setShowSettingsModal(false)} 
+            />
         </>
     );
 };
 
-export default Sidebar; 
+export default Sidebar;
