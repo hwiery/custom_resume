@@ -12,28 +12,28 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
     return (
         <MessageContainer>
             {messages.map((message) => (
-                <MessageWrapper key={message.id} isUser={message.sender === 'user'}>
+                <StyledMessageWrapper key={message.id} $isUser={message.sender === 'user'}>
                     {message.sender !== 'user' && (
                         <IconWrapper>
                             <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
                         </IconWrapper>
                     )}
-                    <MessageBubble isUser={message.sender === 'user'}>
+                    <StyledMessageBubble $isUser={message.sender === 'user'}>
                         <MessageText>{message.text}</MessageText>
-                    </MessageBubble>
-                </MessageWrapper>
+                    </StyledMessageBubble>
+                </StyledMessageWrapper>
             ))}
             {isLoading && (
-                <MessageWrapper isUser={false}>
+                <StyledMessageWrapper $isUser={false}>
                     <IconWrapper>
                         <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
                     </IconWrapper>
-                    <MessageBubble isUser={false}>
+                    <StyledMessageBubble $isUser={false}>
                         <LoadingDots>
                             <span>.</span><span>.</span><span>.</span>
                         </LoadingDots>
-                    </MessageBubble>
-                </MessageWrapper>
+                    </StyledMessageBubble>
+                </StyledMessageWrapper>
             )}
         </MessageContainer>
     );
@@ -47,11 +47,11 @@ const MessageContainer = styled.div`
     padding: 0 20px;
 `;
 
-const MessageWrapper = styled.div<{ isUser: boolean }>`
+const StyledMessageWrapper = styled.div<{ $isUser: boolean }>`
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    justify-content: ${props => props.isUser ? 'flex-end' : 'flex-start'};
+    justify-content: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
     gap: 8px;
     width: 100%;
 `;
@@ -70,12 +70,12 @@ const IconWrapper = styled.div`
     }
 `;
 
-const MessageBubble = styled.div<{ isUser: boolean }>`
+const StyledMessageBubble = styled.div<{ $isUser: boolean }>`
     max-width: calc(100% - 48px);
-    background-color: ${props => props.isUser ? '#E7F5FF' : '#FFFFFF'};
+    background-color: ${props => props.$isUser ? '#E7F5FF' : '#FFFFFF'};
     padding: 16px 20px;
-    border-radius: ${props => props.isUser ? '16px 16px 0 16px' : '16px 16px 16px 0'};
-    border: 1px solid ${props => props.isUser ? '#BFE3FF' : '#E5E7EB'};
+    border-radius: ${props => props.$isUser ? '16px 16px 0 16px' : '16px 16px 16px 0'};
+    border: 1px solid ${props => props.$isUser ? '#BFE3FF' : '#E5E7EB'};
 `;
 
 const MessageText = styled.p`

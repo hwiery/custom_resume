@@ -1,4 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode';
+import axios from 'axios';
+
+interface GoogleTokenPayload {
+    email: string;
+    name: string;
+    picture: string;
+    sub: string;
+    iat: number;
+    exp: number;
+}
 
 interface AuthContextType {
     user: any;
@@ -9,69 +20,114 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// axios 인스턴스 생성
+const api = axios.create({
+    baseURL: '/api',
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<any>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     const login = async (credentialResponse: any) => {
         try {
+            if (!credentialResponse?.credential) {
+                throw new Error('No credential provided');
+            }
+
+            // 구글 토큰 디코딩
             const token = credentialResponse.credential;
-            const decodedToken = JSON.parse(atob(token.split('.')[1]));
+            const decodedToken = jwtDecode<GoogleTokenPayload>(token);
             
-            // MongoDB에 사용자 정보 저장 또는 업데이트
-            const response = await fetch('/api/auth/google', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: decodedToken.email,
-                    name: decodedToken.name,
-                    picture: decodedToken.picture,
-                    googleId: decodedToken.sub
-                })
+            console.log('Attempting to authenticate with token:', { email: decodedToken.email });
+            
+            try {
+                // 백엔드 서버 상태 확인
+                await api.get('/health');
+            } catch (error) {
+                console.error('Backend server health check failed:', error);
+                throw new Error('Backend server is not available');
+            }
+            
+            // 백엔드로 인증 요청
+            const { data: userData } = await api.post('/auth/google', { 
+                token,
+                email: decodedToken.email,
+                name: decodedToken.name,
+                picture: decodedToken.picture
             });
 
-            const userData = await response.json();
+            console.log('Authentication successful:', userData);
             
-            setUser(userData);
+            if (!userData) {
+                throw new Error('No user data received from server');
+            }
+
+            // 사용자 정보 설정
+            const userInfo = {
+                ...userData,
+                email: decodedToken.email,
+                name: decodedToken.name,
+                picture: decodedToken.picture
+            };
+
+            setUser(userInfo);
             setIsAuthenticated(true);
-            localStorage.setItem('user', JSON.stringify(userData));
+            localStorage.setItem('user', JSON.stringify(userInfo));
             localStorage.setItem('isAuthenticated', 'true');
-        } catch (error) {
-            console.error('Login failed:', error);
+        } catch (error: any) {
+            console.error('Login failed:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
+            setUser(null);
+            setIsAuthenticated(false);
+            localStorage.removeItem('user');
+            localStorage.removeItem('isAuthenticated');
+            throw new Error(
+                error.response?.data?.message || 
+                error.message || 
+                'Authentication failed'
+            );
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
         try {
-            // 상태 초기화
+            await api.post('/auth/logout');
+        } catch (error) {
+            console.error('로그아웃 요청 실패:', error);
+        } finally {
+            // 로컬 상태 초기화
             setUser(null);
             setIsAuthenticated(false);
-
-            // 로컬 스토리지의 모든 데이터 제거
             localStorage.clear();
             sessionStorage.clear();
-
-            // 페이지 새로고침하여 초기 상태로 복귀
-            window.location.href = '/';
-        } catch (error) {
-            console.error('로그아웃 실패:', error);
-            // 에러가 발생하더라도 페이지 새로고침
             window.location.href = '/';
         }
     };
 
     useEffect(() => {
-        const initializeAuth = () => {
+        const initializeAuth = async () => {
             try {
                 const storedUser = localStorage.getItem('user');
                 const storedIsAuthenticated = localStorage.getItem('isAuthenticated');
                 
                 if (storedUser && storedIsAuthenticated === 'true') {
-                    const userData = JSON.parse(storedUser);
-                    setUser(userData);
-                    setIsAuthenticated(true);
+                    const { data: verifyData } = await api.get('/auth/verify');
+
+                    if (verifyData) {
+                        const userData = JSON.parse(storedUser);
+                        setUser(userData);
+                        setIsAuthenticated(true);
+                    } else {
+                        throw new Error('Token validation failed');
+                    }
                 }
             } catch (error) {
                 console.error('Auth initialization failed:', error);
