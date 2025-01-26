@@ -1,27 +1,41 @@
 import React from 'react';
-import { GoogleLogin as GoogleOAuthLogin } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
+import { GoogleLogin as GoogleLoginButton } from '@react-oauth/google';
+import { useAuth } from '../context/AuthContext';
+import styled from 'styled-components';
 
 interface GoogleLoginProps {
-    onSuccess: (userData: any) => void;
-    onError: () => void;
+    onSuccess?: () => void;
 }
 
-const GoogleLogin: React.FC<GoogleLoginProps> = ({ onSuccess, onError }) => {
+const GoogleLogin: React.FC<GoogleLoginProps> = ({ onSuccess }) => {
+    const { login } = useAuth();
+
     const handleSuccess = (credentialResponse: any) => {
-        const decoded = jwtDecode(credentialResponse.credential);
-        onSuccess(decoded);
+        login(credentialResponse);
+        if (onSuccess) {
+            onSuccess();
+        }
     };
 
     return (
-        <div className="google-login-container">
-            <GoogleOAuthLogin
+        <LoginContainer>
+            <GoogleLoginButton
                 onSuccess={handleSuccess}
-                onError={onError}
+                onError={() => {
+                    console.log('Login Failed');
+                }}
                 useOneTap
+                auto_select
             />
-        </div>
+        </LoginContainer>
     );
 };
+
+const LoginContainer = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+`;
 
 export default GoogleLogin; 

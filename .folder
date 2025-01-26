@@ -1,57 +1,146 @@
-my-app/
-├── node_modules/
-├── public/
-│   ├── index.html
-│   ├── favicon.ico
-│   ├── manifest.json
-│   └── robots.txt
-├── src/
-│   ├── api/
-│   │   └── # API 관련 로직 파일들
-│   ├── components/
-│   │   ├── ChatInterface.tsx
-│   │   ├── MessageInput.tsx
-│   │   └── MessageList.tsx
-│   ├── context/
-│   │   └── # Context API 관련 파일들
-│   ├── hooks/
-│   │   └── # 커스텀 훅 파일들
-│   ├── pages/
-│   │   └── # 페이지 컴포넌트 파일들
-│   ├── styles/
-│   │   └── chat.css
-│   ├── utils/
-│   │   └── # 유틸리티 함수 파일들
-│   ├── App.tsx
-│   └── index.tsx
-├── tests/
-│   └── # 테스트 파일들
-├── .env
+resumer/
+├── .git/
 ├── .gitignore
-├── .service_guide
-├── .design_guide
 ├── package.json
 ├── package-lock.json
-├── README.md
 ├── tsconfig.json
-└── .folder
-
-
+├── README.md
+├── index.html
+├── .env
+├── .env.development
+├── .env.production
+├── .DB_erd
+├── .service_guide
+├── .design_guide
+├── .folder
+├── public/
+│   ├── assets/
+│   ├── robots.txt
+│   ├── manifest.json
+│   └── favicon.ico
+├── src/
+│   ├── api/
+│   │   └── deepseek.ts
+│   ├── assets/
+│   ├── components/
+│   │   ├── AppContent.tsx
+│   │   ├── ChatInterface.tsx
+│   │   ├── GoogleCallback.tsx
+│   │   ├── GoogleLogin.tsx
+│   │   ├── Header.tsx
+│   │   ├── InputArea.tsx
+│   │   ├── Layout.tsx
+│   │   ├── LoginModal.tsx
+│   │   ├── LogoutModal.tsx
+│   │   ├── Logo.tsx
+│   │   ├── MessageInput.tsx
+│   │   ├── MessageList.tsx
+│   │   ├── ResumeChat.tsx
+│   │   ├── SettingsModal.tsx
+│   │   └── Sidebar.tsx
+│   ├── config/
+│   ├── context/
+│   │   └── AuthContext.tsx
+│   ├── contexts/
+│   ├── hooks/
+│   ├── models/
+│   ├── pages/
+│   │   ├── ResumeChat.tsx
+│   │   ├── Terms.tsx
+│   │   ├── Privacy.tsx
+│   │   └── Contact.tsx
+│   ├── services/
+│   │   ├── chatService.ts
+│   │   └── authService.ts
+│   ├── styles/
+│   │   ├── auth.css
+│   │   ├── chat.css
+│   │   ├── header.css
+│   │   ├── modal.css
+│   │   ├── ResumeChatContainer.ts
+│   │   ├── sidebar.css
+│   │   └── theme.ts
+│   ├── types/
+│   │   ├── message.ts
+│   │   ├── index.ts
+│   │   └── google.d.ts
+│   ├── utils/
+│   ├── App.tsx
+│   ├── index.tsx
+│   └── custom.d.ts
+├── server/
+│   ├── src/
+│   ├── node_modules/
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── tsconfig.json
+│   └── .env
+├── tests/
+├── prompt/
+├── build/
+└── node_modules/
 
 
 설명:
 1. public/ : 정적 파일들이 위치
+   - assets/ : 정적 이미지 등
+   - robots.txt : 검색 엔진 크롤링 설정
+   - manifest.json : PWA 설정
+   - favicon.ico : 웹사이트 아이콘
+
 2. src/
-   - api/ : 외부 API 통신 관련 로직
-   - components/ : 재사용 가능한 컴포넌트
-   - context/ : 전역 상태 관리
-   - hooks/ : 커스텀 React 훅
-   - pages/ : 페이지 단위 컴포넌트
-   - styles/ : CSS 파일들
-   - utils/ : 유틸리티 함수들
-3. tests/ : 테스트 코드
+   - api/
+     └── deepseek.ts : DeepSeek AI API 통신 관련 로직
+   - components/ : 재사용 가능한 컴포넌트들
+     ├── AppContent.tsx : 앱의 주요 컨텐츠 컴포넌트
+     ├── ChatInterface.tsx : 채팅 인터페이스 메인 컴포넌트
+     ├── GoogleCallback.tsx : 구글 로그인 콜백 처리
+     ├── GoogleLogin.tsx : 구글 로그인 버튼 컴포넌트
+     ├── Header.tsx : 헤더 컴포넌트
+     ├── InputArea.tsx : 입력 영역 컴포넌트
+     ├── Layout.tsx : 레이아웃 컴포넌트
+     ├── LoginModal.tsx : 로그인 모달
+     ├── LogoutModal.tsx : 로그아웃 모달
+     ├── MessageInput.tsx : 메시지 입력 컴포넌트
+     ├── MessageList.tsx : 메시지 목록 컴포넌트
+     ├── ResumeChat.tsx : 이력서 채팅 컴포넌트
+     ├── SettingsModal.tsx : 설정 모달
+     └── Sidebar.tsx : 사이드바 컴포넌트
+   - context/
+     └── AuthContext.tsx : 인증 관련 Context
+   - pages/ : 페이지 컴포넌트들
+     ├── ResumeChat.tsx : 메인 채팅 페이지
+     ├── Terms.tsx : 이용약관 페이지
+     ├── Privacy.tsx : 개인정보처리방침 페이지
+     └── Contact.tsx : 연락처 페이지
+   - services/ : 서비스 로직
+     ├── chatService.ts : 채팅 관련 서비스
+     └── authService.ts : 인증 관련 서비스
+   - styles/ : 스타일 파일들
+     ├── auth.css : 인증 관련 스타일
+     ├── chat.css : 채팅 관련 스타일
+     ├── header.css : 헤더 스타일
+     ├── modal.css : 모달 스타일
+     ├── sidebar.css : 사이드바 스타일
+     └── theme.ts : 테마 설정
+   - types/ : 타입 정의
+     ├── message.ts : 메시지 관련 타입
+     ├── index.ts : 공통 타입
+     └── google.d.ts : 구글 관련 타입 정의
+
+3. server/ : 백엔드 서버
+   - src/ : 서버 소스 코드
+   - package.json : 서버 의존성 관리
+   - tsconfig.json : 서버 TypeScript 설정
+   - .env : 서버 환경 변수
+
 4. 설정 파일들:
    - .env : 환경 변수
+   - .env.development : 개발 환경 변수
+   - .env.production : 운영 환경 변수
+   - .DB_erd : 데이터베이스 ERD
+   - .service_guide : 서비스 가이드
+   - .design_guide : 디자인 가이드
    - tsconfig.json : TypeScript 설정
    - package.json : 프로젝트 의존성 관리
 

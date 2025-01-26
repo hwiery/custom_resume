@@ -8,6 +8,11 @@ const AppContent: React.FC = () => {
     const { isAuthenticated } = useAuth();
     const messageCount = useRef(0);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    const handleToggleSidebar = () => {
+        setIsSidebarOpen(prev => !prev);
+    };
 
     return (
         <div className="main-content">
@@ -16,7 +21,9 @@ const AppContent: React.FC = () => {
                 onLogin={() => {
                     setIsLoggedIn(true);
                     setShowLoginModal(false);
-                }} 
+                }}
+                isSidebarOpen={isSidebarOpen}
+                onToggleSidebar={handleToggleSidebar}
             />
             <LoginModal 
                 isOpen={showLoginModal}

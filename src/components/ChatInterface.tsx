@@ -8,13 +8,21 @@ import { getChatResponse } from '../api/deepseek';
 import LoginModal from './LoginModal';
 import ChatService from '../services/chatService';
 import { IoEnterOutline } from 'react-icons/io5';
+import { useAuth } from '../context/AuthContext';
 
 interface ChatInterfaceProps {
     isLoggedIn: boolean;
     onLogin: () => void;
+    isSidebarOpen: boolean;
+    onToggleSidebar: () => void;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
+    isLoggedIn, 
+    onLogin, 
+    isSidebarOpen, 
+    onToggleSidebar 
+}) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [chatCount, setChatCount] = useState<number>(0);
