@@ -11,21 +11,10 @@ interface SidebarProps {
     onToggle: () => void;
 }
 
-interface HistoryItem {
-    id: number;
-    preview: string;
-    timestamp: Date;
-}
-
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     const { isAuthenticated, user, login, logout } = useAuth();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
-    const [histories] = useState<HistoryItem[]>([
-        { id: 1, preview: "신입 개발자 이력서 작성하기", timestamp: new Date() },
-        { id: 2, preview: "프론트엔드 개발자 포트폴리오", timestamp: new Date() },
-        { id: 3, preview: "백엔드 개발자 경력 기술서", timestamp: new Date() },
-    ]);
 
     const handleNewChat = () => {
         console.log("New chat started");
@@ -205,17 +194,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                             <button className="new-chat-button" onClick={handleNewChat}>
                                 <FaPlus /> New Story
                             </button>
-
-                            <div className="history-section">
-                                <h2>History</h2>
-                                <div className="history-list">
-                                    {histories.map(history => (
-                                        <div key={history.id} className="history-item">
-                                            <p>{history.preview.slice(0, 20)}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
                         </div>
 
                         <div className="sidebar-links">

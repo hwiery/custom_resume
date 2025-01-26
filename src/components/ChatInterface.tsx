@@ -122,12 +122,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) =>
 const ChatContainer = styled.div`
     display: flex;
     flex-direction: column;
-    width: 100%;
+    width: calc(100% - 280px);
     max-width: 760px;
     margin: 0 auto;
     min-height: 100vh;
     position: relative;
     background-color: white;
+    
+    @media (max-width: 1024px) {
+        width: 100%;
+    }
 `;
 
 const MainContent = styled.div`
@@ -136,7 +140,7 @@ const MainContent = styled.div`
     flex-direction: column;
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 320px;
+    padding-bottom: 120px;
     height: 100vh;
     background-color: white;
     
@@ -159,7 +163,7 @@ const MainContent = styled.div`
 `;
 
 const Header = styled.header`
-    padding: 40px 0;
+    padding: 40px 20px;
     text-align: center;
     width: 100%;
     background: white;
@@ -175,9 +179,9 @@ const Title = styled.h1`
 const InputContainer = styled.div`
     position: fixed;
     bottom: 0;
-    left: 50%;
+    left: 65%;
     transform: translateX(-50%);
-    width: 100%;
+    width: calc(100% - 280px);
     max-width: 760px;
     height: auto;
     min-height: 120px;
@@ -186,11 +190,13 @@ const InputContainer = styled.div`
     justify-content: center;
     align-items: center;
     z-index: 100;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    
+    @media (max-width: 1024px) {
+        width: 100%;
+    }
     
     & > form {
         width: 100%;
-        max-width: 760px;
         padding: 20px;
     }
 `;
