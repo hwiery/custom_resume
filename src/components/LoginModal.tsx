@@ -1,23 +1,23 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FcGoogle } from 'react-icons/fc';
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../context/AuthContext';
 
 interface LoginModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: (userId: string) => void;
+    onSuccess: () => void;
     forceLogin?: boolean;
-    sessionId?: string;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ 
     isOpen, 
     onClose, 
     onSuccess, 
-    forceLogin = false,
-    sessionId 
+    forceLogin = false
 }) => {
+    const { login } = useAuth();
+    
     if (!isOpen) return null;
 
     const handleClose = () => {
@@ -26,37 +26,10 @@ const LoginModal: React.FC<LoginModalProps> = ({
         }
     };
 
-    const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-        try {
-            console.log('Google login response:', credentialResponse); // 디버깅용
-
-            const response = await fetch('/api/auth/google', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    credential: credentialResponse.credential,
-                }),
-                credentials: 'include', // 쿠키 포함
-            });
-
-            if (!response.ok) {
-                throw new Error(`Login failed: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            console.log('Login success data:', data); // 디버깅용
-            
-            if (data.userId) {
-                onSuccess(data.userId);
-            } else {
-                throw new Error('No userId in response');
-            }
-        } catch (error) {
-            console.error('Google login error:', error);
-            alert('로그인에 실패했습니다. 다시 시도해주세요.');
-        }
+    const handleGoogleSuccess = (credentialResponse: any) => {
+        login(credentialResponse);
+        onSuccess();
+        onClose();
     };
 
     return (

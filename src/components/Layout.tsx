@@ -1,56 +1,54 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import styled from 'styled-components';
 
-const LayoutContainer = styled.div`
-    display: flex;
-    height: 100vh;
-`;
-
-const MainContent = styled.main`
-    flex: 1;
-    overflow-y: auto;
-    background-color: #F8FAFC;
-`;
-
 const Layout: React.FC = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const sidebarRef = useRef<HTMLDivElement>(null);
-
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
-    };
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                isSidebarOpen &&
-                sidebarRef.current &&
-                !sidebarRef.current.contains(event.target as Node) &&
-                window.innerWidth <= 768 // 모바일에서만 외부 클릭 처리
-            ) {
+        const handleResize = () => {
+            if (window.innerWidth >= 1024) {
+                setIsSidebarOpen(true);
+            } else {
                 setIsSidebarOpen(false);
             }
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isSidebarOpen]);
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     return (
         <LayoutContainer>
-            <div ref={sidebarRef}>
-                <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
-            </div>
-            <MainContent>
+            <Sidebar 
+                isOpen={isSidebarOpen} 
+                onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+            />
+            <MainContent $isSidebarOpen={isSidebarOpen}>
                 <Outlet />
             </MainContent>
         </LayoutContainer>
     );
 };
+
+const LayoutContainer = styled.div`
+    display: flex;
+    min-height: 100vh;
+    background-color: white;
+`;
+
+const MainContent = styled.main<{ $isSidebarOpen: boolean }>`
+    flex: 1;
+    margin-left: ${props => props.$isSidebarOpen ? '240px' : '0'};
+    transition: margin-left 0.3s ease;
+    background-color: white;
+    
+    @media (max-width: 1024px) {
+        margin-left: 0;
+    }
+`;
 
 export default Layout;
 

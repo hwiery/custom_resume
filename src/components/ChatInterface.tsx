@@ -6,12 +6,12 @@ import MessageList from './MessageList';
 import { Message } from '../types/message';
 import { getChatResponse } from '../api/deepseek';
 import LoginModal from './LoginModal';
-import { saveTempChat, migrateToUserChat } from '../services/chatService';
+import ChatService from '../services/chatService';
 import { IoEnterOutline } from 'react-icons/io5';
 
 interface ChatInterfaceProps {
     isLoggedIn: boolean;
-    onLogin: (userId: string) => void;
+    onLogin: () => void;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) => {
@@ -36,19 +36,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) =>
 
     // 초기 메시지 설정
     useEffect(() => {
-        const initialMessage: Message = {
-            id: 1,
-            text: "안녕하세요! 저는 당신의 이력서 작성을 도와드릴 AI 어시스턴트입니다. 어떤 도움이 필요하신가요?",
-            sender: 'RESUMER',
-            timestamp: new Date()
-        };
-        setMessages([initialMessage]);
+        const savedMessages = ChatService.loadTempChat(sessionId.current);
+        setMessages(savedMessages);
     }, []);
 
     // 메시지가 변경될 때마다 임시 저장
     useEffect(() => {
         if (messages.length > 0) {
-            saveTempChat(sessionId.current, messages);
+            ChatService.saveTempChat(sessionId.current, messages);
         }
     }, [messages]);
 
@@ -96,9 +91,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) =>
         }
     };
 
-    const handleLoginSuccess = async (userId: string) => {
-        await migrateToUserChat(sessionId.current, userId);
-        onLogin(userId);
+    const handleLoginSuccess = () => {
+        onLogin();
         setShowLoginModal(false);
         setForceLogin(false);
         setChatCount(0);
@@ -120,7 +114,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) =>
                 onClose={() => setShowLoginModal(false)}
                 onSuccess={handleLoginSuccess}
                 forceLogin={forceLogin}
-                sessionId={sessionId.current}
             />
         </ChatContainer>
     );
@@ -134,6 +127,7 @@ const ChatContainer = styled.div`
     margin: 0 auto;
     min-height: 100vh;
     position: relative;
+    background-color: white;
 `;
 
 const MainContent = styled.div`
@@ -144,18 +138,23 @@ const MainContent = styled.div`
     overflow-y: auto;
     padding-bottom: 320px;
     height: 100vh;
+    background-color: white;
     
     &::-webkit-scrollbar {
         width: 8px;
     }
     
     &::-webkit-scrollbar-track {
-        background: #F5F1E6;
+        background: #F8F9FA;
     }
     
     &::-webkit-scrollbar-thumb {
-        background: #E8E1D1;
+        background: #DDE1E6;
         border-radius: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+        background: #CED4DA;
     }
 `;
 
@@ -176,7 +175,7 @@ const Title = styled.h1`
 const InputContainer = styled.div`
     position: fixed;
     bottom: 0;
-    left: 60%;
+    left: 50%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 760px;
@@ -187,6 +186,7 @@ const InputContainer = styled.div`
     justify-content: center;
     align-items: center;
     z-index: 100;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
     
     & > form {
         width: 100%;
