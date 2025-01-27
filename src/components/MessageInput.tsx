@@ -1,6 +1,6 @@
-import React, { useState, KeyboardEvent, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { IoEnterOutline } from 'react-icons/io5';
+import { IoSend } from 'react-icons/io5';
 
 interface MessageInputProps {
     onSendMessage: (message: string) => void;
@@ -11,19 +11,12 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, isLoading })
     const [message, setMessage] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const adjustHeight = () => {
-        const textarea = textareaRef.current;
-        if (textarea) {
-            textarea.style.height = 'auto';
-            const newHeight = Math.min(textarea.scrollHeight, 300); // 최대 300px (약 10줄)
-            textarea.style.height = `${newHeight}px`;
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
         }
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setMessage(e.target.value);
-        adjustHeight();
-    };
+    }, [message]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,112 +24,125 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, isLoading })
             onSendMessage(message);
             setMessage('');
             if (textareaRef.current) {
-                textareaRef.current.style.height = '80px';
+                textareaRef.current.style.height = 'auto';
             }
         }
     };
 
-    const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSubmit(e as any);
+            handleSubmit(e);
         }
     };
 
     return (
-        <InputForm onSubmit={handleSubmit}>
-            <InputField
+        <InputContainer 
+            onSubmit={handleSubmit}
+            role="form"
+            aria-label="메시지 입력 폼"
+        >
+            <StyledTextarea
                 ref={textareaRef}
                 value={message}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                placeholder="메시지를 입력하세요... (Ctrl/Cmd + Enter로 전송)"
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="메시지를 입력하세요..."
                 disabled={isLoading}
+                rows={1}
+                aria-label="메시지 입력창"
+                aria-disabled={isLoading}
             />
-            <SendButton type="submit" disabled={isLoading || !message.trim()}>
-                <IoEnterOutline size={32} />
+            <SendButton 
+                type="submit" 
+                disabled={!message.trim() || isLoading}
+                aria-label="메시지 보내기"
+            >
+                <IoSend size={20} aria-hidden="true" />
             </SendButton>
-        </InputForm>
+        </InputContainer>
     );
 };
 
-const InputForm = styled.form`
+const InputContainer = styled.form`
     display: flex;
-    align-items: right;
-    position: relative;
+    align-items: flex-end;
+    gap: 8px;
     width: 100%;
-    margin: 0 auto;
+    padding: 16px;
+    background: white;
+    border-top: 1px solid #eee;
+
+    @media (max-width: 768px) {
+        padding: 12px;
+        gap: 6px;
+    }
 `;
 
-const InputField = styled.textarea`
-    width: 100%;
-    min-height: 80px;
-    max-height: 300px;
-    padding: 16px 70px 16px 20px;
-    border: 1px solid #E5E7EB;
-    border-radius: 12px;
-    font-size: 16px;
+const StyledTextarea = styled.textarea`
+    flex: 1;
+    min-height: 24px;
+    max-height: 120px;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 24px;
+    font-size: 14px;
     line-height: 1.5;
     resize: none;
-    background-color: #FDFAF6;
-    font-family: 'Pretendard Regular', sans-serif;
-    overflow-y: auto;
-    transition: height 0.2s ease;
-    
-    &::-webkit-scrollbar {
-        width: 8px;
-    }
-    
-    &::-webkit-scrollbar-track {
-        background: #F5F1E6;
-        border-radius: 4px;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-        background: #E8E1D1;
-        border-radius: 4px;
-    }
-    
-    &::-webkit-scrollbar-thumb:hover {
-        background: #E8E1D1;
-    }
-    
+    outline: none;
+    font-family: inherit;
+    transition: all 0.2s ease;
+
     &:focus {
-        outline: none;
-        border-color: #E5E7EB;
-        box-shadow: none;
+        border-color: #1a73e8;
+        box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
     }
-    
+
     &:disabled {
-        background-color: #F3F4F6;
+        background-color: #f8f9fa;
         cursor: not-allowed;
+    }
+
+    @media (max-width: 768px) {
+        padding: 10px 14px;
+        font-size: 13px;
+        min-height: 20px;
+        max-height: 100px;
     }
 `;
 
 const SendButton = styled.button`
-    position: absolute;
-    right: 32px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #0A66C2;
-    cursor: pointer;
-    padding: 12px;
-    width: 56px;
-    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
-    
-    &:hover {
-        background: none;
-        color: #0A66C2;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background-color: #1a73e8;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+
+    &:hover:not(:disabled) {
+        background-color: #1557b0;
+        transform: scale(1.05);
     }
-    
+
     &:disabled {
-        color: #9CA3AF;
+        background-color: #ddd;
         cursor: not-allowed;
+    }
+
+    @media (max-width: 768px) {
+        width: 36px;
+        height: 36px;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #1a73e8;
+        outline-offset: 2px;
     }
 `;
 

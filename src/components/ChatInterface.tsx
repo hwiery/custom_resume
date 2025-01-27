@@ -6,9 +6,10 @@ import MessageList from './MessageList';
 import { Message } from '../types/message';
 import { getChatResponse } from '../api/deepseek';
 import LoginModal from './LoginModal';
-import ChatService from '../services/chatService';
+import { chatService } from '../services/chatService';
 import { IoEnterOutline } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
+import { getErrorMessage } from '../types/error';
 
 interface ChatInterfaceProps {
     isLoggedIn: boolean;
@@ -30,6 +31,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const [forceLogin, setForceLogin] = useState<boolean>(false);
     const sessionId = useRef(uuidv4());
     const messageListRef = useRef<HTMLDivElement>(null);
+    const { user } = useAuth();
 
     // 자동 스크롤 기능
     const scrollToBottom = () => {
@@ -44,56 +46,87 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     // 초기 메시지 설정
     useEffect(() => {
-        const savedMessages = ChatService.loadTempChat(sessionId.current);
-        setMessages(savedMessages);
-    }, []);
-
-    // 메시지가 변경될 때마다 임시 저장
-    useEffect(() => {
-        if (messages.length > 0) {
-            ChatService.saveTempChat(sessionId.current, messages);
-        }
-    }, [messages]);
-
-    const handleMessageSend = async (text: string) => {
-        if (!isLoggedIn) {
-            const newCount = chatCount + 1;
-            setChatCount(newCount);
-            
-            if (newCount >= 3) {
-                setForceLogin(true);
-                setShowLoginModal(true);
-                return;
+        const loadChat = async () => {
+            try {
+                if (isLoggedIn && user) {
+                    const chat = await chatService.getChat(sessionId.current);
+                    setMessages(chat.messages);
+                } else {
+                    const savedMessages = chatService.loadTempChat(sessionId.current);
+                    setMessages(savedMessages);
+                }
+            } catch (error) {
+                console.error('Failed to load chat:', error);
+                const savedMessages = chatService.loadTempChat(sessionId.current);
+                setMessages(savedMessages);
             }
-        }
-        
-        const newMessage: Message = {
-            id: messages.length + 1,
-            text,
-            sender: 'user',
-            timestamp: new Date()
         };
-        setMessages(prev => [...prev, newMessage]);
-        setIsLoading(true);
+        loadChat();
+    }, [isLoggedIn, user]);
 
+    // 메시지가 변경될 때마다 저장
+    useEffect(() => {
+        const saveMessages = async () => {
+            if (messages.length > 0) {
+                try {
+                    if (isLoggedIn && user) {
+                        await chatService.saveChat(sessionId.current, messages);
+                    } else {
+                        chatService.saveTempChat(sessionId.current, messages);
+                    }
+                } catch (error) {
+                    console.error('Failed to save chat:', error);
+                }
+            }
+        };
+        saveMessages();
+    }, [messages, isLoggedIn, user]);
+
+    const handleSendMessage = async (text: string) => {
+        if (!text.trim() || isLoading) return;
+
+        setIsLoading(true);
         try {
-            const response = await getChatResponse([...messages, newMessage]);
+            // 사용자 메시지 추가
+            const newMessage: Message = {
+                id: Date.now(),
+                text,
+                sender: 'user',
+                timestamp: new Date()
+            };
+
+            const updatedMessages = [...messages, newMessage];
+            setMessages(updatedMessages);
+
+            // AI 응답 받기
+            const response = await getChatResponse(updatedMessages);
+            
+            // AI 응답 메시지 추가
             const computerResponse: Message = {
-                id: messages.length + 2,
+                id: Date.now() + 1,
                 text: response,
                 sender: 'RESUMER',
                 timestamp: new Date()
             };
-            setMessages(prev => [...prev, computerResponse]);
+
+            const finalMessages = [...updatedMessages, computerResponse];
+            setMessages(finalMessages);
+
+            // 메시지 저장
+            if (isLoggedIn && user) {
+                await chatService.saveChat(sessionId.current, finalMessages);
+            } else {
+                chatService.saveTempChat(sessionId.current, finalMessages);
+            }
         } catch (error) {
-            console.error('Error getting response:', error);
+            console.error('Error in chat:', error);
             const errorMessage: Message = {
-                id: messages.length + 2,
-                text: "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                id: Date.now() + 2,
+                text: getErrorMessage(error),
                 sender: 'RESUMER',
                 timestamp: new Date()
             };
-            setMessages(prev => [...prev, errorMessage]);
+            setMessages([...messages, errorMessage]);
         } finally {
             setIsLoading(false);
         }
@@ -107,14 +140,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     return (
-        <ChatContainer>
-            <MainContent ref={messageListRef}>
+        <ChatContainer role="main" aria-label="채팅 인터페이스">
+            <MainContent ref={messageListRef} role="log" aria-live="polite" aria-label="메시지 목록">
                 <Header>
-                    <Title>Tell me your story.</Title>
+                    <Title role="heading" aria-level={1}>Tell me your story.</Title>
                 </Header>
-                <MessageList messages={messages} isLoading={isLoading} />
-                <InputContainer>
-                    <MessageInput onSendMessage={handleMessageSend} isLoading={isLoading} />
+                <MessageList 
+                    messages={messages} 
+                    isLoading={isLoading} 
+                />
+                <InputContainer role="form" aria-label="메시지 입력">
+                    <MessageInput 
+                        onSendMessage={handleSendMessage} 
+                        isLoading={isLoading} 
+                    />
                 </InputContainer>
             </MainContent>
             <LoginModal
@@ -137,8 +176,9 @@ const ChatContainer = styled.div`
     position: relative;
     background-color: white;
     
-    @media (max-width: 1024px) {
+    @media (max-width: 768px) {
         width: 100%;
+        max-width: 100%;
     }
 `;
 
@@ -168,6 +208,14 @@ const MainContent = styled.div`
     &::-webkit-scrollbar-thumb:hover {
         background: #CED4DA;
     }
+
+    @media (max-width: 768px) {
+        padding-bottom: 100px;
+    }
+
+    @media (max-height: 600px) {
+        height: calc(100vh - 60px);
+    }
 `;
 
 const Header = styled.header`
@@ -175,6 +223,10 @@ const Header = styled.header`
     text-align: center;
     width: 100%;
     background: white;
+
+    @media (max-width: 768px) {
+        padding: 20px 16px;
+    }
 `;
 
 const Title = styled.h1`
@@ -182,30 +234,43 @@ const Title = styled.h1`
     font-size: 32px;
     color: #1E3A8A;
     margin: 0;
+    
+    @media (max-width: 768px) {
+        font-size: 24px;
+    }
 `;
 
 const InputContainer = styled.div`
     position: fixed;
     bottom: 0;
-    left: 65%;
+    left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 280px);
     max-width: 760px;
     height: auto;
-    min-height: 120px;
+    min-height: 100px;
     background: white;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 100;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
     
-    @media (max-width: 1024px) {
+    @media (max-width: 768px) {
         width: 100%;
+        min-height: 80px;
+        padding: 0 8px;
     }
     
     & > form {
         width: 100%;
-        padding: 20px;
+        max-width: 720px;
+        padding: 16px;
+        margin: 0 auto;
+    }
+
+    @media (max-height: 600px) {
+        position: sticky;
     }
 `;
 

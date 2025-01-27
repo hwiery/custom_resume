@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Message } from '../types/message';
-import LogoIcon from '../assets/Logo.svg';
+import LoadingIndicator from './LoadingIndicator';
 
 interface MessageListProps {
     messages: Message[];
@@ -10,106 +10,92 @@ interface MessageListProps {
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
     return (
-        <MessageContainer>
-            {messages.map((message) => (
-                <MessageWrapper key={message.id} isUser={message.sender === 'user'}>
-                    {message.sender !== 'user' && (
-                        <IconWrapper>
-                            <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
-                        </IconWrapper>
-                    )}
-                    <MessageBubble isUser={message.sender === 'user'}>
-                        <MessageText>{message.text}</MessageText>
-                    </MessageBubble>
-                </MessageWrapper>
+        <MessageListContainer role="log" aria-live="polite">
+            {messages.map((message, index) => (
+                <MessageItem 
+                    key={message.id} 
+                    $isUser={message.sender === 'user'}
+                    role="listitem"
+                    aria-label={`${message.sender === 'user' ? '사용자' : 'AI'} 메시지`}
+                >
+                    <MessageContent $isUser={message.sender === 'user'}>
+                        {message.text}
+                    </MessageContent>
+                    <MessageTime aria-label="메시지 시간">
+                        {new Date(message.timestamp).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        })}
+                    </MessageTime>
+                </MessageItem>
             ))}
             {isLoading && (
-                <MessageWrapper isUser={false}>
-                    <IconWrapper>
-                        <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
-                    </IconWrapper>
-                    <MessageBubble isUser={false}>
-                        <LoadingDots>
-                            <span>.</span><span>.</span><span>.</span>
-                        </LoadingDots>
-                    </MessageBubble>
-                </MessageWrapper>
+                <MessageItem 
+                    $isUser={false}
+                    role="status"
+                    aria-label="메시지 로딩 중"
+                >
+                    <MessageContent $isUser={false}>
+                        <LoadingIndicator size={24} color="#666" />
+                    </MessageContent>
+                </MessageItem>
             )}
-        </MessageContainer>
+        </MessageListContainer>
     );
 };
 
-const MessageContainer = styled.div`
+const MessageListContainer = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
-    width: 100%;
-    padding: 0 20px;
-`;
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
 
-const MessageWrapper = styled.div<{ isUser: boolean }>`
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: ${props => props.isUser ? 'flex-end' : 'flex-start'};
-    gap: 8px;
-    width: 100%;
-`;
-
-const IconWrapper = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    img {
-        width: 32px;
-        height: 32px;
-        padding: 4px;
-        background: #F8FAFC;
-        border-radius: 50%;
+    @media (max-width: 768px) {
+        padding: 16px;
+        gap: 12px;
     }
 `;
 
-const MessageBubble = styled.div<{ isUser: boolean }>`
-    max-width: calc(100% - 48px);
-    background-color: ${props => props.isUser ? '#E7F5FF' : '#FFFFFF'};
-    padding: 16px 20px;
-    border-radius: ${props => props.isUser ? '16px 16px 0 16px' : '16px 16px 16px 0'};
-    border: 1px solid ${props => props.isUser ? '#BFE3FF' : '#E5E7EB'};
-`;
-
-const MessageText = styled.p`
-    margin: 0;
-    font-size: 16px;
-    line-height: 1.6;
-    color: #1F2937;
-    white-space: pre-wrap;
-    font-family: 'Pretendard Regular', sans-serif;
-`;
-
-const LoadingDots = styled.div`
+const MessageItem = styled.div<{ $isUser: boolean }>`
     display: flex;
+    flex-direction: column;
+    align-items: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
     gap: 4px;
-    
-    span {
-        animation: bounce 1s infinite;
-        
-        &:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        
-        &:nth-child(3) {
-            animation-delay: 0.4s;
-        }
+    max-width: 85%;
+    align-self: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
+
+    @media (max-width: 768px) {
+        max-width: 90%;
     }
-    
-    @keyframes bounce {
-        0%, 100% {
-            transform: translateY(0);
-        }
-        50% {
-            transform: translateY(-4px);
-        }
+`;
+
+const MessageContent = styled.div<{ $isUser: boolean }>`
+    padding: 12px 16px;
+    border-radius: 16px;
+    background-color: ${props => props.$isUser ? '#1a73e8' : '#f1f3f4'};
+    color: ${props => props.$isUser ? 'white' : '#1a1a1a'};
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+    @media (max-width: 768px) {
+        padding: 10px 14px;
+        font-size: 13px;
+        border-radius: 14px;
+    }
+`;
+
+const MessageTime = styled.span`
+    font-size: 12px;
+    color: #666;
+    margin: 0 8px;
+
+    @media (max-width: 768px) {
+        font-size: 11px;
+        margin: 0 6px;
     }
 `;
 

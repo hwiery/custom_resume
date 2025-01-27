@@ -5,7 +5,16 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   picture: String,
   googleId: { type: String, required: true, unique: true },
-  createdAt: { type: Date, default: Date.now }
+  refreshToken: { type: String },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
-export default mongoose.model('User', userSchema); 
+userSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+const User = mongoose.model('User', userSchema);
+
+export default User; 
