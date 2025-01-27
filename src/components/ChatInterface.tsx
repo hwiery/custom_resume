@@ -11,6 +11,7 @@ import { IoEnterOutline } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
 import { useError } from '../context/ErrorContext';
 import Toast from './Toast';
+import { useParams, useNavigate } from 'react-router-dom';
 
 interface ChatInterfaceProps {
     isLoggedIn: boolean;
@@ -34,6 +35,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const sessionId = useRef(uuidv4());
     const messageListRef = useRef<HTMLDivElement>(null);
     const { setError } = useError();
+    const { chatId } = useParams();
+    const navigate = useNavigate();
 
     // 자동 스크롤 기능
     const scrollToBottom = () => {
@@ -47,36 +50,49 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }, [messages]);
 
     useEffect(() => {
-        const loadMessages = async () => {
-            if (isLoggedIn) {
-                try {
-                    const response = await ChatService.getChatHistory();
-                    if (response.data.chats.length > 0) {
-                        setMessages(response.data.chats[0].messages);
-                    } else {
-                        const savedMessages = ChatService.loadTempChat(sessionId.current);
-                        setMessages(savedMessages);
-                    }
-                } catch (error) {
-                    console.error('Error loading messages:', error);
-                    const savedMessages = ChatService.loadTempChat(sessionId.current);
-                    setMessages(savedMessages);
-                    showToast('메시지 로딩 중 오류가 발생했습니다.', 'error');
-                }
-            } else {
-                const savedMessages = ChatService.loadTempChat(sessionId.current);
-                setMessages(savedMessages);
-            }
-        };
+        if (chatId) {
+            loadChat(chatId);
+        } else {
+            const savedMessages = ChatService.loadTempChat(sessionId.current);
+            setMessages(savedMessages);
+        }
+    }, [chatId]);
 
-        loadMessages();
-    }, [isLoggedIn]);
+    const loadChat = async (id: string) => {
+        try {
+            const response = await ChatService.getChat(id);
+            setMessages(response.data.messages);
+        } catch (error) {
+            console.error('Error loading chat:', error);
+            showToast('채팅을 불러오는데 실패했습니다.', 'error');
+        }
+    };
 
     useEffect(() => {
         if (messages.length > 0) {
             ChatService.saveTempChat(sessionId.current, messages);
         }
     }, [messages]);
+
+    useEffect(() => {
+        if (isLoggedIn) {
+            const tempMessages = ChatService.loadTempChat(sessionId.current);
+            if (tempMessages.length > 0) {
+                handleTempChatMigration(tempMessages);
+            }
+        }
+    }, [isLoggedIn]);
+
+    const handleTempChatMigration = async (tempMessages: Message[]) => {
+        try {
+            const chatResponse = await ChatService.startNewChat(tempMessages);
+            ChatService.clearTempChat(sessionId.current);
+            navigate(`/chats/${chatResponse.data._id}`);
+        } catch (error) {
+            console.error('Error migrating temp chat:', error);
+            showToast('임시 채팅 데이터 이전 중 오류가 발생했습니다.', 'error');
+        }
+    };
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
         setToast({ message, type });
@@ -93,7 +109,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 return;
             }
         }
-        
+
         const newMessage: Message = {
             id: messages.length + 1,
             text,
@@ -111,10 +127,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 sender: 'RESUMER',
                 timestamp: new Date()
             };
-            setMessages(prev => [...prev, computerResponse]);
+
+            const updatedMessages = [...messages, newMessage, computerResponse];
+            setMessages(updatedMessages);
 
             if (isLoggedIn) {
-                await ChatService.saveChat([...messages, newMessage, computerResponse]);
+                if (chatId) {
+                    // 기존 채팅에 메시지 추가
+                    await ChatService.addMessage(chatId, newMessage);
+                    await ChatService.addMessage(chatId, computerResponse);
+                } else {
+                    // 새 채팅 시작
+                    const chatResponse = await ChatService.startNewChat(updatedMessages);
+                    navigate(`/chats/${chatResponse.data._id}`);
+                }
+            } else {
+                ChatService.saveTempChat(sessionId.current, updatedMessages);
             }
         } catch (error) {
             console.error('Error getting response:', error);
@@ -126,11 +154,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     const handleLoginSuccess = () => {
-        onLogin();
         setShowLoginModal(false);
-        setForceLogin(false);
-        setChatCount(0);
-        showToast('로그인되었습니다.', 'success');
+        onLogin();
+    };
+
+    const handleLoginCancel = () => {
+        setShowLoginModal(false);
+        if (forceLogin) {
+            ChatService.clearTempChat(sessionId.current);
+            setMessages([]);
+            setChatCount(0);
+            setForceLogin(false);
+        }
     };
 
     return (
@@ -146,7 +181,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </MainContent>
             <LoginModal
                 isOpen={showLoginModal}
-                onClose={() => setShowLoginModal(false)}
+                onClose={handleLoginCancel}
                 onSuccess={handleLoginSuccess}
                 forceLogin={forceLogin}
             />

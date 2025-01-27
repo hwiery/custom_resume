@@ -2,6 +2,11 @@ import React from 'react';
 import styled from 'styled-components';
 import { Message } from '../types/message';
 import LogoIcon from '../assets/Logo.svg';
+import format from 'date-fns/format';
+import isToday from 'date-fns/isToday';
+import isYesterday from 'date-fns/isYesterday';
+import isSameDay from 'date-fns/isSameDay';
+import { ko } from 'date-fns/locale';
 
 interface MessageListProps {
     messages: Message[];
@@ -9,20 +14,54 @@ interface MessageListProps {
 }
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
+    const renderDateDivider = (date: Date) => {
+        let dateText = '';
+        if (isToday(date)) {
+            dateText = '오늘';
+        } else if (isYesterday(date)) {
+            dateText = '어제';
+        } else {
+            dateText = format(date, 'yyyy년 M월 d일 (EEEE)', { locale: ko });
+        }
+        
+        return <DateDivider>{dateText}</DateDivider>;
+    };
+
+    const renderMessages = () => {
+        let lastDate: Date | null = null;
+        
+        return messages.map((message, index) => {
+            const messageDate = new Date(message.timestamp);
+            const showDateDivider = !lastDate || !isSameDay(lastDate, messageDate);
+            
+            if (showDateDivider) {
+                lastDate = messageDate;
+            }
+            
+            return (
+                <React.Fragment key={message.id}>
+                    {showDateDivider && renderDateDivider(messageDate)}
+                    <MessageWrapper isUser={message.sender === 'user'}>
+                        {message.sender !== 'user' && (
+                            <IconWrapper>
+                                <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
+                            </IconWrapper>
+                        )}
+                        <MessageBubble isUser={message.sender === 'user'}>
+                            <MessageText>{message.text}</MessageText>
+                            <MessageTime>
+                                {format(messageDate, 'HH:mm')}
+                            </MessageTime>
+                        </MessageBubble>
+                    </MessageWrapper>
+                </React.Fragment>
+            );
+        });
+    };
+
     return (
         <MessageContainer>
-            {messages.map((message) => (
-                <MessageWrapper key={message.id} isUser={message.sender === 'user'}>
-                    {message.sender !== 'user' && (
-                        <IconWrapper>
-                            <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
-                        </IconWrapper>
-                    )}
-                    <MessageBubble isUser={message.sender === 'user'}>
-                        <MessageText>{message.text}</MessageText>
-                    </MessageBubble>
-                </MessageWrapper>
-            ))}
+            {renderMessages()}
             {isLoading && (
                 <MessageWrapper isUser={false}>
                     <IconWrapper>
@@ -111,6 +150,40 @@ const LoadingDots = styled.div`
             transform: translateY(-4px);
         }
     }
+`;
+
+const DateDivider = styled.div`
+    text-align: center;
+    margin: 24px 0;
+    position: relative;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 1px;
+        background-color: #E5E7EB;
+        z-index: 1;
+    }
+    
+    span {
+        background-color: white;
+        padding: 0 16px;
+        color: #6B7280;
+        font-size: 14px;
+        position: relative;
+        z-index: 2;
+    }
+`;
+
+const MessageTime = styled.span`
+    font-size: 12px;
+    color: #6B7280;
+    margin-top: 4px;
+    display: block;
+    text-align: right;
 `;
 
 export default MessageList;

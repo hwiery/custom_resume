@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ErrorProvider } from './context/ErrorContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import AppRoutes from './routes';
+import AuthenticatedRoutes from './components/AuthenticatedRoutes';
 import './styles/chat.css';
 import './styles/sidebar.css';
 
@@ -13,7 +14,9 @@ const App: React.FC = () => {
             <ErrorProvider>
                 <AuthProvider>
                     <Router>
-                        <AppRoutes />
+                        <AuthenticatedRoutes>
+                            <AppRoutes />
+                        </AuthenticatedRoutes>
                     </Router>
                 </AuthProvider>
             </ErrorProvider>

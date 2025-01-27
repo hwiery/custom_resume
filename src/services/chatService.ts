@@ -4,31 +4,59 @@ import { Message } from '../types/message';
 interface ChatResponse {
   success: boolean;
   data: {
-    chats: any[];
-    pagination?: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    }
+    _id: string;
+    title: string;
+    messages: Message[];
+    lastMessage?: string;
+    lastMessageDate?: string;
+    createdAt: string;
   };
   error?: string;
 }
 
+interface ChatListResponse {
+  success: boolean;
+  data: {
+    chats: Array<{
+      _id: string;
+      title: string;
+      lastMessage: string;
+      lastMessageDate: string;
+      createdAt: string;
+    }>;
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  };
+}
+
 class ChatService {
-  static async saveChat(messages: Message[]) {
+  static async startNewChat(messages: Message[]) {
     try {
-      const response = await api.post<ChatResponse>('/chat/save', { messages });
+      const response = await api.post<ChatResponse>('/chat/start', { messages });
       return response.data;
     } catch (error) {
-      console.error('Save chat error:', error);
+      console.error('Start chat error:', error);
+      throw error;
+    }
+  }
+
+  static async addMessage(chatId: string, message: Message) {
+    try {
+      const response = await api.post<ChatResponse>(`/chat/${chatId}/message`, { message });
+      return response.data;
+    } catch (error) {
+      console.error('Add message error:', error);
       throw error;
     }
   }
 
   static async getChatHistory(page = 1, limit = 10) {
     try {
-      const response = await api.get<ChatResponse>(`/chat/history?page=${page}&limit=${limit}`);
+      const response = await api.get<ChatListResponse>(`/chat/history?page=${page}&limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Get chat history error:', error);
