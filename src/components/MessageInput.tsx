@@ -46,16 +46,16 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, isLoading })
     return (
         <InputForm onSubmit={handleSubmit}>
             <InputField
-                ref={textareaRef}
-                value={message}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                placeholder="메시지를 입력하세요... (Ctrl/Cmd + Enter로 전송)"
-                disabled={isLoading}
-            />
-            <SendButton type="submit" disabled={isLoading || !message.trim()}>
-                <IoEnterOutline size={32} />
-            </SendButton>
+                    ref={textareaRef}
+                    value={message}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder="메시지를 입력하세요... (Ctrl/Cmd + Enter로 전송)"
+                    disabled={isLoading}
+                />
+                <SendButton type="submit" disabled={isLoading || !message.trim()}>
+                    <IoEnterOutline size={32} />
+                </SendButton>
         </InputForm>
     );
 };

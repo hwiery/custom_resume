@@ -22,6 +22,7 @@
     background-color: #FFFFFF;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     text-align: center;
+    border-color: #ffffff;
 }
 
 .chat-header h1 {
@@ -187,4 +188,14 @@ button:active {
 @keyframes typing {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-5px); }
+}
+
+/* 다른 컴포넌트의 보더도 하얀색으로 통일 */
+.component-border {
+    border-color: #ffffff;
+}
+
+/* 레이아웃 컴포넌트의 보더도 하얀색으로 변경 */
+.layout-border {
+    border-color: #ffffff;
 }

@@ -1,52 +1,77 @@
+import api from './api';
 import { Message } from '../types/message';
 
-class ChatService {
-    private static instance: ChatService;
-    private readonly TEMP_CHAT_KEY = 'tempChat';
-    private readonly INITIAL_MESSAGE: Message = {
-        id: 1,
-        text: "안녕하세요! 저는 당신의 이력서 작성을 도와드릴 AI 어시스턴트입니다. 어떤 도움이 필요하신가요?",
-        sender: 'RESUMER',
-        timestamp: new Date()
-    };
-
-    private constructor() {}
-
-    public static getInstance(): ChatService {
-        if (!ChatService.instance) {
-            ChatService.instance = new ChatService();
-        }
-        return ChatService.instance;
+interface ChatResponse {
+  success: boolean;
+  data: {
+    chats: any[];
+    pagination?: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
     }
-
-    public saveTempChat(sessionId: string, messages: Message[]): void {
-        try {
-            localStorage.setItem(`${this.TEMP_CHAT_KEY}_${sessionId}`, JSON.stringify(messages));
-        } catch (error) {
-            console.error('Error saving temp chat:', error);
-        }
-    }
-
-    public loadTempChat(sessionId: string): Message[] {
-        try {
-            const savedChat = localStorage.getItem(`${this.TEMP_CHAT_KEY}_${sessionId}`);
-            if (savedChat) {
-                return JSON.parse(savedChat);
-            }
-            return [this.INITIAL_MESSAGE];
-        } catch (error) {
-            console.error('Error loading temp chat:', error);
-            return [this.INITIAL_MESSAGE];
-        }
-    }
-
-    public clearChat(sessionId: string): void {
-        try {
-            localStorage.removeItem(`${this.TEMP_CHAT_KEY}_${sessionId}`);
-        } catch (error) {
-            console.error('Error clearing chat:', error);
-        }
-    }
+  };
+  error?: string;
 }
 
-export default ChatService.getInstance(); 
+class ChatService {
+  static async saveChat(messages: Message[]) {
+    try {
+      const response = await api.post<ChatResponse>('/chat/save', { messages });
+      return response.data;
+    } catch (error) {
+      console.error('Save chat error:', error);
+      throw error;
+    }
+  }
+
+  static async getChatHistory(page = 1, limit = 10) {
+    try {
+      const response = await api.get<ChatResponse>(`/chat/history?page=${page}&limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get chat history error:', error);
+      throw error;
+    }
+  }
+
+  static async getChat(chatId: string) {
+    try {
+      const response = await api.get<ChatResponse>(`/chat/${chatId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get chat error:', error);
+      throw error;
+    }
+  }
+
+  // 임시 저장 기능
+  static saveTempChat(sessionId: string, messages: Message[]) {
+    try {
+      localStorage.setItem(`chat_${sessionId}`, JSON.stringify(messages));
+    } catch (error) {
+      console.error('Save temp chat error:', error);
+    }
+  }
+
+  static loadTempChat(sessionId: string): Message[] {
+    try {
+      const saved = localStorage.getItem(`chat_${sessionId}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+      console.error('Load temp chat error:', error);
+      return [];
+    }
+  }
+
+  static clearTempChat(sessionId: string) {
+    try {
+      localStorage.removeItem(`chat_${sessionId}`);
+    } catch (error) {
+      console.error('Clear temp chat error:', error);
+    }
+  }
+}
+
+export default ChatService; 

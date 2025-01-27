@@ -9,6 +9,8 @@ import LoginModal from './LoginModal';
 import ChatService from '../services/chatService';
 import { IoEnterOutline } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
+import { useError } from '../context/ErrorContext';
+import Toast from './Toast';
 
 interface ChatInterfaceProps {
     isLoggedIn: boolean;
@@ -28,8 +30,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const [chatCount, setChatCount] = useState<number>(0);
     const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
     const [forceLogin, setForceLogin] = useState<boolean>(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
     const sessionId = useRef(uuidv4());
     const messageListRef = useRef<HTMLDivElement>(null);
+    const { setError } = useError();
 
     // 자동 스크롤 기능
     const scrollToBottom = () => {
@@ -42,18 +46,41 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         scrollToBottom();
     }, [messages]);
 
-    // 초기 메시지 설정
     useEffect(() => {
-        const savedMessages = ChatService.loadTempChat(sessionId.current);
-        setMessages(savedMessages);
-    }, []);
+        const loadMessages = async () => {
+            if (isLoggedIn) {
+                try {
+                    const response = await ChatService.getChatHistory();
+                    if (response.data.chats.length > 0) {
+                        setMessages(response.data.chats[0].messages);
+                    } else {
+                        const savedMessages = ChatService.loadTempChat(sessionId.current);
+                        setMessages(savedMessages);
+                    }
+                } catch (error) {
+                    console.error('Error loading messages:', error);
+                    const savedMessages = ChatService.loadTempChat(sessionId.current);
+                    setMessages(savedMessages);
+                    showToast('메시지 로딩 중 오류가 발생했습니다.', 'error');
+                }
+            } else {
+                const savedMessages = ChatService.loadTempChat(sessionId.current);
+                setMessages(savedMessages);
+            }
+        };
 
-    // 메시지가 변경될 때마다 임시 저장
+        loadMessages();
+    }, [isLoggedIn]);
+
     useEffect(() => {
         if (messages.length > 0) {
             ChatService.saveTempChat(sessionId.current, messages);
         }
     }, [messages]);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+        setToast({ message, type });
+    };
 
     const handleMessageSend = async (text: string) => {
         if (!isLoggedIn) {
@@ -85,15 +112,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, computerResponse]);
+
+            if (isLoggedIn) {
+                await ChatService.saveChat([...messages, newMessage, computerResponse]);
+            }
         } catch (error) {
             console.error('Error getting response:', error);
-            const errorMessage: Message = {
-                id: messages.length + 2,
-                text: "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-                sender: 'RESUMER',
-                timestamp: new Date()
-            };
-            setMessages(prev => [...prev, errorMessage]);
+            setError('응답을 받아오는 중 오류가 발생했습니다.');
+            showToast('메시지 전송 중 오류가 발생했습니다.', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -104,6 +130,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setShowLoginModal(false);
         setForceLogin(false);
         setChatCount(0);
+        showToast('로그인되었습니다.', 'success');
     };
 
     return (
@@ -123,6 +150,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 onSuccess={handleLoginSuccess}
                 forceLogin={forceLogin}
             />
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </ChatContainer>
     );
 };
@@ -139,6 +173,7 @@ const ChatContainer = styled.div`
     
     @media (max-width: 1024px) {
         width: 100%;
+        padding: 0 20px;
     }
 `;
 
@@ -171,10 +206,11 @@ const MainContent = styled.div`
 `;
 
 const Header = styled.header`
-    padding: 40px 20px;
+    padding: 40px 0;
     text-align: center;
     width: 100%;
     background: white;
+    margin-bottom: 20px;
 `;
 
 const Title = styled.h1`
@@ -182,14 +218,23 @@ const Title = styled.h1`
     font-size: 32px;
     color: #1E3A8A;
     margin: 0;
+    white-space: nowrap;
+    
+    @media (max-width: 768px) {
+        font-size: 28px;
+    }
+    
+    @media (max-width: 480px) {
+        font-size: 24px;
+    }
 `;
 
 const InputContainer = styled.div`
     position: fixed;
     bottom: 0;
-    left: 65%;
+    left: 50%;
     transform: translateX(-50%);
-    width: calc(100% - 280px);
+    width: 100%;
     max-width: 760px;
     height: auto;
     min-height: 120px;
@@ -198,9 +243,11 @@ const InputContainer = styled.div`
     justify-content: center;
     align-items: center;
     z-index: 100;
+    padding: 0 20px;
     
     @media (max-width: 1024px) {
-        width: 100%;
+        width: calc(100% - 40px);
+        left: 50%;
     }
     
     & > form {
