@@ -10,9 +10,19 @@ import Layout from './components/Layout';
 import './styles/chat.css';
 import './styles/sidebar.css';
 
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+
+if (!GOOGLE_CLIENT_ID) {
+    console.error('GOOGLE_CLIENT_ID가 설정되지 않았습니다.');
+}
+
 const App: React.FC = () => {
     return (
-        <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
+        <GoogleOAuthProvider 
+            clientId={GOOGLE_CLIENT_ID}
+            onScriptLoadError={() => console.error('Google OAuth 스크립트 로드 실패')}
+            onScriptLoadSuccess={() => console.log('Google OAuth 스크립트 로드 성공')}
+        >
             <AuthProvider>
                 <Router>
                     <Routes>

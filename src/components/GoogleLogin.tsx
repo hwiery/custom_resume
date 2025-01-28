@@ -9,8 +9,13 @@ interface GoogleLoginProps {
 
 const GoogleLogin: React.FC<GoogleLoginProps> = ({ onSuccess, onError }) => {
     const handleSuccess = (credentialResponse: any) => {
-        const decoded = jwtDecode(credentialResponse.credential);
-        onSuccess(decoded);
+        try {
+            const decoded = jwtDecode(credentialResponse.credential);
+            onSuccess(decoded);
+        } catch (error) {
+            console.error('Failed to decode token:', error);
+            onError();
+        }
     };
 
     return (
@@ -18,7 +23,13 @@ const GoogleLogin: React.FC<GoogleLoginProps> = ({ onSuccess, onError }) => {
             <GoogleOAuthLogin
                 onSuccess={handleSuccess}
                 onError={onError}
-                useOneTap
+                useOneTap={false}
+                auto_select={false}
+                context="signin"
+                type="standard"
+                theme="outline"
+                size="large"
+                width="300"
             />
         </div>
     );

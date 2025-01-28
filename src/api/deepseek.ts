@@ -2,15 +2,15 @@ import axios, { AxiosError } from 'axios';
 import { Message } from '../types/message';
 
 // API 기본 설정
-const DEEPSEEK_API_URL = process.env.REACT_APP_DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const deepseekApi = axios.create({
-    baseURL: DEEPSEEK_API_URL,
+    baseURL: API_BASE_URL,
     headers: {
-        'Authorization': `Bearer ${process.env.REACT_APP_DEEPSEEK_API_KEY}`,
         'Content-Type': 'application/json',
     },
-    timeout: 30000
+    timeout: 30000,
+    withCredentials: true
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -59,13 +59,13 @@ export const getChatResponse = async (messages: Message[]): Promise<string> => {
             content: msg.text
         }));
 
-        console.log('Sending request to:', `${DEEPSEEK_API_URL}/v1/chat/completions`);
+        console.log('Sending request to proxy');
         console.log('Request payload:', {
             model: "deepseek-chat",
             messages: chatMessages
         });
 
-        const response = await deepseekApi.post('/v1/chat/completions', {
+        const response = await deepseekApi.post('/api/chat/proxy/deepseek', {
             model: "deepseek-chat",
             messages: chatMessages,
             temperature: 0.7,
@@ -81,19 +81,7 @@ export const getChatResponse = async (messages: Message[]): Promise<string> => {
         return response.data.choices[0].message.content;
     } catch (error) {
         const axiosError = error as AxiosError;
-        
-        if (axiosError.response?.status === 401) {
-            throw new Error('API 키가 유효하지 않습니다. 환경 변수를 확인해주세요.');
-        }
-        
-        if (axiosError.response?.status === 404) {
-            throw new Error('API 엔드포인트를 찾을 수 없습니다. URL을 확인해주세요.');
-        }
-
-        if (axiosError.response?.status === 429) {
-            throw new Error('API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
-        }
-
+        console.error('Error getting response:', axiosError);
         throw new Error(`API 오류: ${axiosError.message}`);
     }
 };
