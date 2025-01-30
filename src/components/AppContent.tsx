@@ -1,29 +1,49 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ChatInterface from './ChatInterface';
-import LoginModal from './LoginModal';
+import Sidebar from './Sidebar';
 
 const AppContent: React.FC = () => {
-    const [showLoginModal, setShowLoginModal] = useState(false);
-    const { isAuthenticated } = useAuth();
-    const messageCount = useRef(0);
+    const { isAuthenticated, login } = useAuth();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [selectedChatId, setSelectedChatId] = useState<string>('new');
+
+    const handleSidebarToggle = () => {
+        setIsSidebarOpen(!isSidebarOpen);
+    };
+
+    const handleChatSelect = (chatId: string) => {
+        setSelectedChatId(chatId);
+    };
+
+    const handleLoginSuccess = async (credentialResponse?: any) => {
+        if (credentialResponse) {
+            await login(credentialResponse);
+        }
+    };
 
     return (
-        <div className="main-content">
-            <ChatInterface 
-                isLoggedIn={isAuthenticated} 
-                onLogin={() => {
-                    setShowLoginModal(false);
-                }} 
+        <div className="app-container">
+            <Sidebar
+                isOpen={isSidebarOpen}
+                onToggle={handleSidebarToggle}
+                onChatSelect={handleChatSelect}
             />
-            <LoginModal 
-                isOpen={showLoginModal}
-                onClose={() => setShowLoginModal(false)}
-                onSuccess={() => {
-                    setShowLoginModal(false);
-                }}
-                forceLogin={false}
+            <ChatInterface
+                isLoggedIn={isAuthenticated}
+                onLogin={handleLoginSuccess}
+                selectedChatId={selectedChatId}
             />
+            <style>
+                {`
+                .app-container {
+                    display: flex;
+                    width: 100%;
+                    height: 100vh;
+                    overflow: hidden;
+                }
+                `}
+            </style>
         </div>
     );
 };

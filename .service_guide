@@ -120,9 +120,5 @@ LLM API 비용 최적화: 사용량에 따라 비용이 발생하므로, API 호
 
 5. 기술 스택 선택
 프론트엔드: React.js 또는 Next.js
-
-백엔드: Firebase (초기 단계에서는 서버리스 아키텍처로 충분)
-
-데이터베이스: Firestore 또는 MongoDB
-
+데이터베이스: MongoDB
 배포: Vercel

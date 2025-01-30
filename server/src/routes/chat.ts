@@ -1,8 +1,9 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction, RequestHandler } from 'express';
 import { authenticateToken } from '../middleware/auth';
-import Chat from '../models/Chat';
+import Chat, { IChat } from '../models/Chat';
 import mongoose from 'mongoose';
 import axios from 'axios';
+import ChatHistory, { ChatHistoryDocument, ChatHistoryResponse } from '../models/ChatHistory';
 
 interface AuthRequest extends Request {
     user?: {
@@ -15,7 +16,6 @@ const router = express.Router();
 // DB 연결 테스트
 router.get('/test-db', async (req: Request, res: Response): Promise<void> => {
     try {
-        // 1. DB 연결 상태 확인
         const dbState = mongoose.connection.readyState;
         const dbStatus: { [key: number]: string } = {
             0: "연결 끊김",
@@ -25,8 +25,10 @@ router.get('/test-db', async (req: Request, res: Response): Promise<void> => {
             99: "연결 실패"
         };
 
-        // 2. Chat 컬렉션의 문서 수 확인
-        const chatCount = await Chat.countDocuments();
+        const [chatCount, historyCount] = await Promise.all([
+            Chat.countDocuments(),
+            ChatHistory.countDocuments()
+        ]);
 
         res.json({
             success: true,
@@ -34,6 +36,7 @@ router.get('/test-db', async (req: Request, res: Response): Promise<void> => {
                 dbConnection: dbStatus[dbState] || "알 수 없는 상태",
                 connectionString: process.env.MONGODB_URI?.split('@')[1] || "URI not found",
                 chatCount,
+                historyCount,
                 readyState: dbState
             }
         });
@@ -50,7 +53,6 @@ router.get('/test-db', async (req: Request, res: Response): Promise<void> => {
 // DB 상태 확인 (상세)
 router.get('/db-status', async (req: Request, res: Response): Promise<void> => {
     try {
-        // 1. DB 연결 상태 확인
         const dbState = mongoose.connection.readyState;
         const dbStatus: { [key: number]: string } = {
             0: "연결 끊김",
@@ -60,28 +62,13 @@ router.get('/db-status', async (req: Request, res: Response): Promise<void> => {
             99: "연결 실패"
         };
 
-        // 2. 최근 채팅 목록 조회 (최대 5개)
         const recentChats = await Chat.find()
             .sort({ createdAt: -1 })
             .limit(5)
-            .select('_id userId messages.content messages.timestamp messages.isUser createdAt')
+            .select('content isUser createdAt')
             .lean();
 
-        // 3. 통계 정보
         const totalChats = await Chat.countDocuments();
-        const totalMessages = await Chat.aggregate([
-            {
-                $project: {
-                    messageCount: { $size: "$messages" }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    total: { $sum: "$messageCount" }
-                }
-            }
-        ]);
 
         res.json({
             success: true,
@@ -93,13 +80,12 @@ router.get('/db-status', async (req: Request, res: Response): Promise<void> => {
                     name: mongoose.connection.name
                 },
                 stats: {
-                    totalChats,
-                    totalMessages: totalMessages[0]?.total || 0
+                    totalChats
                 },
                 recentChats: recentChats.map(chat => ({
                     ...chat,
-                    messageCount: chat.messages.length,
-                    lastMessage: chat.messages[chat.messages.length - 1]
+                    messageCount: 1,
+                    lastMessage: chat.content
                 }))
             }
         });
@@ -149,18 +135,15 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
         }
 
         const chat = await Chat.create({
-            userId: new mongoose.Types.ObjectId(req.user.userId),
-            messages: [{
-                content: message,
-                isUser: true,
-                timestamp: new Date()
-            }]
+            historyId: new mongoose.Types.ObjectId(),
+            content: message,
+            isUser: true
         });
 
         console.log('채팅 생성 완료:', {
             chatId: chat._id,
-            userId: chat.userId,
-            messageCount: chat.messages.length
+            content: chat.content,
+            isUser: chat.isUser
         });
 
         res.json({ success: true, data: chat });
@@ -197,14 +180,11 @@ router.post('/:chatId/messages', authenticateToken, async (req: AuthRequest, res
 
         const { message } = req.body;
         const chat = await Chat.findOneAndUpdate(
-            { _id: req.params.chatId, userId: req.user.userId },
+            { _id: req.params.chatId },
             {
-                $push: {
-                    messages: {
-                        content: message,
-                        isUser: true,
-                        timestamp: new Date()
-                    }
+                $set: {
+                    content: message,
+                    isUser: true
                 }
             },
             { new: true }
@@ -221,8 +201,8 @@ router.post('/:chatId/messages', authenticateToken, async (req: AuthRequest, res
         
         console.log('메시지 추가 완료:', {
             chatId: chat._id,
-            userId: chat.userId,
-            totalMessages: chat.messages.length
+            content: chat.content,
+            isUser: chat.isUser
         });
 
         res.json({ success: true, data: chat });
@@ -269,5 +249,223 @@ router.post('/proxy/deepseek', async (req: AuthRequest, res: Response): Promise<
         });
     }
 });
+
+// 사용자의 모든 채팅 히스토리 가져오기
+const getChatHistories: RequestHandler = async (req: AuthRequest, res, next) => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                error: 'User not authenticated'
+            });
+            return;
+        }
+
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const skip = (page - 1) * limit;
+
+        const [histories, total] = await Promise.all([
+            ChatHistory.find({ 
+                userId: new mongoose.Types.ObjectId(req.user.userId) 
+            })
+            .select('title lastMessage messageCount createdAt updatedAt')
+            .sort({ updatedAt: -1 })
+            .skip(skip)
+            .limit(limit),
+            ChatHistory.countDocuments({ 
+                userId: new mongoose.Types.ObjectId(req.user.userId) 
+            })
+        ]);
+        
+        res.json({
+            success: true,
+            data: {
+                histories: histories.map(h => h.toObject()),
+                pagination: {
+                    total,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(total / limit)
+                }
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// 특정 채팅 히스토리의 모든 메시지 가져오기
+const getChatHistory: RequestHandler = async (req: AuthRequest, res, next) => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                error: 'User not authenticated'
+            });
+            return;
+        }
+
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 50;
+        const skip = (page - 1) * limit;
+
+        const history = await ChatHistory.findOne({
+            _id: new mongoose.Types.ObjectId(req.params.id),
+            userId: new mongoose.Types.ObjectId(req.user.userId)
+        }) as ChatHistoryDocument | null;
+
+        if (!history) {
+            res.status(404).json({
+                success: false,
+                error: 'Chat history not found'
+            });
+            return;
+        }
+
+        const [messages, total] = await Promise.all([
+            Chat.find({ 
+                historyId: history._id 
+            })
+            .sort({ createdAt: 1 })
+            .skip(skip)
+            .limit(limit),
+            Chat.countDocuments({ 
+                historyId: history._id 
+            })
+        ]);
+
+        const response: ChatHistoryResponse = {
+            ...history.toObject(),
+            messages,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
+
+        res.json({
+            success: true,
+            data: response
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// 새로운 채팅 히스토리 생성
+const createChatHistory: RequestHandler = async (req: AuthRequest, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                error: 'User not authenticated'
+            });
+            return;
+        }
+
+        const { content } = req.body;
+        
+        const history = await ChatHistory.create([{
+            userId: new mongoose.Types.ObjectId(req.user.userId),
+            title: content.substring(0, 100),
+            lastMessage: content,
+            messageCount: 1
+        }], { session }) as ChatHistoryDocument[];
+
+        const message = await Chat.create([{
+            historyId: history[0]._id,
+            content,
+            isUser: true
+        }], { session });
+
+        await session.commitTransaction();
+        
+        const response: ChatHistoryResponse = {
+            ...history[0].toObject(),
+            messages: [message[0]]
+        };
+
+        res.json({
+            success: true,
+            data: response
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        next(error);
+    } finally {
+        session.endSession();
+    }
+};
+
+// 채팅 히스토리에 메시지 추가
+const addMessageToChatHistory: RequestHandler = async (req: AuthRequest, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                error: 'User not authenticated'
+            });
+            return;
+        }
+
+        const { content, isUser } = req.body;
+        
+        const history = await ChatHistory.findOneAndUpdate(
+            { 
+                _id: new mongoose.Types.ObjectId(req.params.id),
+                userId: new mongoose.Types.ObjectId(req.user.userId)
+            },
+            { 
+                $set: { lastMessage: content },
+                $inc: { messageCount: 1 }
+            },
+            { 
+                new: true,
+                session 
+            }
+        ) as ChatHistoryDocument | null;
+
+        if (!history) {
+            await session.abortTransaction();
+            res.status(404).json({
+                success: false,
+                error: 'Chat history not found'
+            });
+            return;
+        }
+
+        const message = await Chat.create([{
+            historyId: history._id,
+            content,
+            isUser
+        }], { session });
+
+        await session.commitTransaction();
+
+        res.json({
+            success: true,
+            data: message[0]
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        next(error);
+    } finally {
+        session.endSession();
+    }
+};
+
+router.get('/history', authenticateToken, getChatHistories);
+router.get('/history/:id', authenticateToken, getChatHistory);
+router.post('/history', authenticateToken, createChatHistory);
+router.post('/history/:id/message', authenticateToken, addMessageToChatHistory);
 
 export default router; 

@@ -8,20 +8,31 @@ import { getChatResponse } from '../api/deepseek';
 import LoginModal from './LoginModal';
 import ChatService from '../services/chatService';
 import { IoEnterOutline } from 'react-icons/io5';
+import axiosInstance from '../api/axios';
+import { AxiosError } from 'axios';
 
 interface ChatInterfaceProps {
     isLoggedIn: boolean;
-    onLogin: () => void;
+    onLogin: (credentialResponse?: any) => void | Promise<void>;
+    selectedChatId?: string;
 }
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) => {
+const INITIAL_MESSAGE: Message = {
+    id: 0,
+    text: "안녕하세요! 저는 당신의 이력서 작성을 도와드릴 AI 어시스턴트입니다. 어떤 도움이 필요하신가요?\n\n다음과 같은 것들을 도와드릴 수 있습니다:\n1. 이력서 작성 가이드\n2. 경력 기술 방법 조언\n3. 자기소개서 작성 도움\n4. 포트폴리오 구성 제안\n\n무엇을 도와드릴까요?",
+    sender: 'RESUMER',
+    timestamp: new Date()
+};
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin, selectedChatId }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [chatCount, setChatCount] = useState<number>(0);
     const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
     const [forceLogin, setForceLogin] = useState<boolean>(false);
+    const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);
     const sessionId = useRef(uuidv4());
     const messageListRef = useRef<HTMLDivElement>(null);
 
@@ -46,10 +57,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) =>
         scrollToBottom();
     }, [messages]);
 
+    // 선택된 채팅 히스토리 로드
+    useEffect(() => {
+        if (isLoggedIn && selectedChatId && selectedChatId !== 'new') {
+            loadChatHistory(selectedChatId);
+        } else if (selectedChatId === 'new') {
+            setMessages([INITIAL_MESSAGE]);
+            setCurrentChatId(undefined);
+        }
+    }, [isLoggedIn, selectedChatId]);
+
     // 초기 메시지 설정
     useEffect(() => {
         const savedMessages = ChatService.loadTempChat(sessionId.current);
-        setMessages(savedMessages);
+        if (savedMessages.length > 0) {
+            setMessages(savedMessages);
+        } else {
+            setMessages([INITIAL_MESSAGE]);
+        }
     }, []);
 
     // 메시지가 변경될 때마다 임시 저장
@@ -59,11 +84,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) =>
         }
     }, [messages]);
 
+    const loadChatHistory = async (chatId: string) => {
+        try {
+            const response = await axiosInstance.get(`/api/chat/history/${chatId}`);
+            if (response.data.success) {
+                const history = response.data.data;
+                setMessages(history.messages.map((msg: any, index: number) => ({
+                    id: index + 1,
+                    text: msg.content,
+                    sender: msg.isUser ? 'user' : 'RESUMER',
+                    timestamp: new Date(msg.timestamp)
+                })));
+                setCurrentChatId(chatId);
+            }
+        } catch (error) {
+            console.error('채팅 히스토리 로드 중 오류:', error);
+        }
+    };
+
     const handleMessageSend = async (text: string) => {
         console.log('메시지 전송 시도:', {
             isLoggedIn,
-            hasToken: !!localStorage.getItem('token'),
-            message: text
+            currentChatId,
+            text,
+            hasToken: !!localStorage.getItem('token')
         });
 
         if (!isLoggedIn) {
@@ -88,7 +132,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) =>
         setIsLoading(true);
 
         try {
-            // 로그인한 경우에만 서버에 채팅 저장
             if (isLoggedIn) {
                 const token = localStorage.getItem('token');
                 if (!token) {
@@ -98,37 +141,45 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) =>
                 }
 
                 try {
-                    console.log('채팅 저장 시도:', {
-                        message: text,
-                        token: token.substring(0, 10) + '...',
-                        url: `${API_BASE_URL}/api/chat`
-                    });
-
-                    const response = await fetch(`${API_BASE_URL}/api/chat`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ message: text }),
-                        credentials: 'include'
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        console.error('채팅 저장 실패:', {
-                            status: response.status,
-                            statusText: response.statusText,
-                            error: errorData
+                    if (!currentChatId) {
+                        console.log('새 채팅 히스토리 생성 시도:', {
+                            message: text,
+                            token: token.substring(0, 10) + '...'
                         });
-                        throw new Error(errorData.error || 'Failed to save chat to server');
+
+                        const response = await axiosInstance.post('/api/chat/history', {
+                            messages: [{
+                                content: text,
+                                isUser: true,
+                                timestamp: new Date()
+                            }]
+                        });
+                        
+                        console.log('채팅 히스토리 생성 응답:', response.data);
+                        if (response.data.success) {
+                            setCurrentChatId(response.data.data._id);
+                        }
+                    } else {
+                        console.log('기존 채팅에 메시지 추가 시도:', {
+                            chatId: currentChatId,
+                            message: text
+                        });
+
+                        await axiosInstance.post(`/api/chat/history/${currentChatId}/message`, {
+                            content: text,
+                            isUser: true
+                        });
                     }
-                    
-                    const data = await response.json();
-                    console.log('채팅 저장 완료:', data);
                 } catch (error) {
-                    console.error('채팅 저장 오류:', error);
-                    if (error instanceof Error && error.message.includes('인증')) {
+                    const axiosError = error as AxiosError;
+                    console.error('채팅 저장 오류:', {
+                        error: axiosError.isAxiosError ? {
+                            status: axiosError.response?.status,
+                            data: axiosError.response?.data,
+                            message: axiosError.message
+                        } : error
+                    });
+                    if (axiosError.isAxiosError && axiosError.response?.status === 401) {
                         setShowLoginModal(true);
                     }
                 }
@@ -143,38 +194,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ isLoggedIn, onLogin }) =>
             };
             setMessages(prev => [...prev, computerResponse]);
 
-            // AI 응답도 서버에 저장
-            if (isLoggedIn) {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    console.error('토큰이 없습니다.');
-                    return;
-                }
-
+            // AI 응답 저장
+            if (isLoggedIn && currentChatId) {
                 try {
-                    console.log('AI 응답 저장 시도:', {
-                        message: computerResponse.text,
-                        token: token.substring(0, 10) + '...'
+                    await axiosInstance.post(`/api/chat/history/${currentChatId}/message`, {
+                        content: computerResponse.text,
+                        isUser: false
                     });
-
-                    const response = await fetch('http://localhost:5000/api/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ message: computerResponse.text }),
-                        credentials: 'include'
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        console.error('AI 응답 저장 실패:', errorData);
-                        throw new Error(errorData.error || 'Failed to save AI response to server');
-                    }
-                    
-                    const data = await response.json();
-                    console.log('AI 응답 저장 완료:', data);
                 } catch (error) {
                     console.error('AI 응답 저장 오류:', error);
                 }

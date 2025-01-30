@@ -1,40 +1,180 @@
-my-app/
-├── node_modules/
-├── public/
-│   ├── index.html
-│   ├── favicon.ico
-│   ├── manifest.json
-│   └── robots.txt
-├── src/
-│   ├── api/
-│   │   └── # API 관련 로직 파일들
-│   ├── components/
-│   │   ├── ChatInterface.tsx
-│   │   ├── MessageInput.tsx
-│   │   └── MessageList.tsx
-│   ├── context/
-│   │   └── # Context API 관련 파일들
-│   ├── hooks/
-│   │   └── # 커스텀 훅 파일들
-│   ├── pages/
-│   │   └── # 페이지 컴포넌트 파일들
-│   ├── styles/
-│   │   └── chat.css
-│   ├── utils/
-│   │   └── # 유틸리티 함수 파일들
-│   ├── App.tsx
-│   └── index.tsx
-├── tests/
-│   └── # 테스트 파일들
-├── .env
-├── .gitignore
-├── .service_guide
-├── .design_guide
-├── package.json
-├── package-lock.json
-├── README.md
-├── tsconfig.json
-└── .folder
+root/
+│  .DB_erd
+│  .design_guide
+│  .env
+│  .folder
+│  .gitignore
+│  .service_guide
+│  index.html
+│  package-lock.json
+│  package.json
+│  README.md
+│  tsconfig.json
+│
+├─build
+│  │  asset-manifest.json
+│  │  favicon.ico
+│  │  index.html
+│  │  logo192.png
+│  │  logo512.png
+│  │  manifest.json
+│  │  robots.txt
+│  │
+│  ├─assets
+│  │      fav16.png
+│  │
+│  └─static
+│      ├─css
+│      │      main.4b34fb7e.css
+│      │      main.4b34fb7e.css.map
+│      │
+│      ├─js
+│      │      main.06bc4a95.js
+│      │      main.06bc4a95.js.LICENSE.txt
+│      │      main.06bc4a95.js.map
+│      │
+│      └─media
+│              Logo.f8d4afd8f90084a6ce9f0f85cbe85c16.svg
+│
+├─prompt
+│  │  create_resume.py
+│  │  package-lock.json
+│  │  package.json
+│  │  readme.md
+│  │
+│  ├─A. 내 정보 모음
+│  │      1. 스토리 초안.md
+│  │      2. 질문답변.md
+│  │      3. 이력서 초안.md
+│  │      4. 커스텀 이력서.md
+│  │
+│  ├─B. 예시
+│  │      1. (예시) 스토리 초안.md
+│  │      2. (예시)  질문답변.md
+│  │      4. (예시) 이력서_초안.md
+│  │      5. (예시) 커스텀 이력서.md
+│  │
+│  ├─C. 생성결과
+│  │      이력서_홍길동_토스뱅크.md
+│  │
+│  ├─D. 출력
+│  │  ├─docx
+│  │  └─pdf
+│  │
+│  └─E. 자료
+│      │  Reference.md
+│      │  업체리스트.md
+│      │
+│      └─채용공고
+│              (예시) 채용공고_ZZZ컴퍼니.md
+│              (예시) 채용공고_토스뱅크
+│
+├─public
+│  │  favicon.ico
+│  │  index.html
+│  │  logo192.png
+│  │  logo512.png
+│  │  manifest.json
+│  │  robots.txt
+│  │
+│  └─assets
+│          fav16.png
+│
+├─server
+│  │  .env
+│  │  package-lock.json
+│  │  package.json
+│  │  tsconfig.json
+│  │
+│  └─src
+│      │  index.ts
+│      │
+│      ├─config
+│      │      database.ts
+│      │
+│      ├─middleware
+│      │      auth.ts
+│      │
+│      ├─models
+│      │      Chat.ts
+│      │      User.ts
+│      │
+│      └─routes
+│              auth.ts
+│              chat.ts
+│
+├─src
+│  │  App.tsx
+│  │  custom.d.ts
+│  │  index.tsx
+│  │
+│  ├─api
+│  │      axios.ts
+│  │      deepseek.ts
+│  │
+│  ├─assets
+│  │      fav16.png
+│  │      Logo.png
+│  │      Logo.svg
+│  │
+│  ├─components
+│  │      AppContent.tsx
+│  │      ChatHistory.tsx
+│  │      ChatInterface.tsx
+│  │      GoogleLogin.tsx
+│  │      Header.tsx
+│  │      InputArea.tsx
+│  │      Layout.tsx
+│  │      LoginModal.tsx
+│  │      LoginPrompt.tsx
+│  │      Logo.tsx
+│  │      LogoutModal.tsx
+│  │      MessageInput.tsx
+│  │      MessageList.tsx
+│  │      ResumeChat.tsx
+│  │      SettingsModal.tsx
+│  │      Sidebar.tsx
+│  │
+│  ├─config
+│  │      db.ts
+│  │      supabase.ts
+│  │
+│  ├─context
+│  │      AuthContext.tsx
+│  │
+│  ├─contexts
+│  ├─hooks
+│  ├─models
+│  │      ChatHistory.ts
+│  │      indexes.ts
+│  │      JobPosting.ts
+│  │      ResumeFile.ts
+│  │      User.ts
+│  │
+│  ├─pages
+│  │      Contact.tsx
+│  │      Privacy.tsx
+│  │      Terms.tsx
+│  │
+│  ├─services
+│  │      chatService.ts
+│  │
+│  ├─styles
+│  │      auth.css
+│  │      chat.css
+│  │      header.css
+│  │      modal.css
+│  │      sidebar.css
+│  │      theme.ts
+│  │
+│  ├─types
+│  │      google.d.ts
+│  │      message.ts
+│  │
+│  └─utils
+│          fileStorage.ts
+│
+└─tests
 
 
 
