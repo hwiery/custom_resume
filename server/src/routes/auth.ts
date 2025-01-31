@@ -1,67 +1,83 @@
-import express from 'express';
+import express, { Request, Response, Router } from 'express';
 import { OAuth2Client } from 'google-auth-library';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import User, { IUser } from '../models/User';
-import { Secret } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
+import User from '../models/User';
 
-const router = express.Router();
+const router: Router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-interface JwtPayload {
-    userId: string;
+interface GoogleAuthRequest extends Request {
+    body: {
+        credential: string;
+    };
 }
 
-// 구글 로그인
-router.post('/google', async (req, res) => {
-    try {
-        const { credential } = req.body;
-        
-        const ticket = await client.verifyIdToken({
-            idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
-        
-        const payload = ticket.getPayload();
-        if (!payload) {
-            throw new Error('Invalid token payload');
-        }
+// 구글 로그인 라우터
+router.post('/google', (req: GoogleAuthRequest, res: Response) => {
+    const handleGoogleAuth = async () => {
+        try {
+            const { credential } = req.body;
+            console.log('Received credential:', credential);
+            
+            if (!credential) {
+                return res.status(400).json({
+                    success: false,
+                    error: '인증 정보가 없습니다.'
+                });
+            }
 
-        let user: IUser | null = await User.findOne({ email: payload.email });
-        
-        if (!user) {
-            user = await User.create({
-                email: payload.email,
-                name: payload.name,
-                picture: payload.picture,
-                googleId: payload.sub
+            const ticket = await client.verifyIdToken({
+                idToken: credential,
+                audience: process.env.GOOGLE_CLIENT_ID
+            });
+            
+            const payload = ticket.getPayload();
+            if (!payload || !payload.email) {
+                return res.status(400).json({
+                    success: false,
+                    error: '유효하지 않은 토큰입니다.'
+                });
+            }
+
+            let user = await User.findOne({ email: payload.email });
+            
+            if (!user) {
+                user = await User.create({
+                    email: payload.email,
+                    name: payload.name,
+                    picture: payload.picture,
+                    googleId: payload.sub
+                });
+            }
+
+            const token = jwt.sign(
+                { userId: user._id.toString() },
+                process.env.JWT_SECRET || 'fallback_secret',
+                { expiresIn: '24h' }
+            );
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    token,
+                    user: {
+                        email: user.email,
+                        name: user.name,
+                        picture: user.picture,
+                        googleId: user.googleId
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Google auth error:', error);
+            return res.status(401).json({
+                success: false,
+                error: '인증에 실패했습니다.'
             });
         }
+    };
 
-        const jwtPayload: JwtPayload = { userId: user._id.toString() };
-        const secret: Secret = process.env.JWT_SECRET || 'fallback_secret';
-        const expiresIn = process.env.JWT_EXPIRES_IN ? parseInt(process.env.JWT_EXPIRES_IN) : 86400; // 24시간
-        const options: SignOptions = { expiresIn };
-        const token = jwt.sign(jwtPayload, secret, options);
-
-        res.json({
-            success: true,
-            data: {
-                token,
-                user: {
-                    _id: user._id,
-                    email: user.email,
-                    name: user.name,
-                    picture: user.picture
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Google auth error:', error);
-        res.status(401).json({
-            success: false,
-            error: 'Authentication failed'
-        });
-    }
+    handleGoogleAuth();
 });
 
 export default router; 
