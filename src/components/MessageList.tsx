@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from 'styled-components';
 import { Message } from '../types/message';
+import styled from 'styled-components';
 import LogoIcon from '../assets/Logo.svg';
 
 interface MessageListProps {
@@ -10,21 +10,21 @@ interface MessageListProps {
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
     return (
-        <MessageContainer>
-            {messages.map((message) => (
-                <MessageWrapper key={message.id} $isUser={message.sender === 'user'}>
-                    {message.sender !== 'user' && (
+        <MessageListContainer>
+            {messages.map((message, index) => (
+                <MessageItem key={`${message.timestamp.getTime()}-${index}`} className={message.role}>
+                    {message.role === 'assistant' && (
                         <IconWrapper>
                             <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
                         </IconWrapper>
                     )}
-                    <MessageBubble $isUser={message.sender === 'user'}>
-                        <MessageText>{message.text}</MessageText>
+                    <MessageBubble $isUser={message.role === 'user'}>
+                        <MessageText>{message.content}</MessageText>
                     </MessageBubble>
-                </MessageWrapper>
+                </MessageItem>
             ))}
             {isLoading && (
-                <MessageWrapper $isUser={false}>
+                <MessageItem className="assistant">
                     <IconWrapper>
                         <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
                     </IconWrapper>
@@ -33,27 +33,29 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
                             <span>.</span><span>.</span><span>.</span>
                         </LoadingDots>
                     </MessageBubble>
-                </MessageWrapper>
+                </MessageItem>
             )}
-        </MessageContainer>
+        </MessageListContainer>
     );
 };
 
-const MessageContainer = styled.div`
+const MessageListContainer = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    width: 100%;
-    padding: 0 20px;
+    gap: 1rem;
+    padding: 1rem;
+    overflow-y: auto;
+    flex-grow: 1;
 `;
 
-const MessageWrapper = styled.div<{ $isUser: boolean }>`
+const MessageItem = styled.div`
     display: flex;
-    flex-direction: row;
     align-items: flex-start;
-    justify-content: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
-    gap: 8px;
-    width: 100%;
+    gap: 0.5rem;
+    
+    &.user {
+        flex-direction: row-reverse;
+    }
 `;
 
 const IconWrapper = styled.div`
@@ -71,20 +73,16 @@ const IconWrapper = styled.div`
 `;
 
 const MessageBubble = styled.div<{ $isUser: boolean }>`
-    max-width: calc(100% - 48px);
-    background-color: ${props => props.$isUser ? '#E7F5FF' : '#FFFFFF'};
-    padding: 16px 20px;
-    border-radius: ${props => props.$isUser ? '16px 16px 0 16px' : '16px 16px 16px 0'};
-    border: 1px solid ${props => props.$isUser ? '#BFE3FF' : '#E5E7EB'};
+    max-width: 70%;
+    background-color: ${props => props.$isUser ? '#0A66C2' : '#F0F2F5'};
+    color: ${props => props.$isUser ? 'white' : '#1C1E21'};
+    padding: 1rem;
+    border-radius: ${props => props.$isUser ? '1rem 1rem 0 1rem' : '1rem 1rem 1rem 0'};
 `;
 
-const MessageText = styled.p`
-    margin: 0;
-    font-size: 16px;
-    line-height: 1.6;
-    color: #1F2937;
+const MessageText = styled.div`
     white-space: pre-wrap;
-    font-family: 'Pretendard Regular', sans-serif;
+    word-break: break-word;
 `;
 
 const LoadingDots = styled.div`

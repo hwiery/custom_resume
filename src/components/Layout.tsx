@@ -1,54 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import React from 'react';
 import Sidebar from './Sidebar';
-import styled from 'styled-components';
 
-const Layout: React.FC = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+interface LayoutProps {
+    children: React.ReactNode;
+    isOpen: boolean;
+    onToggle: () => void;
+    onSelectChat: (chatId: string) => void;
+    activeChatId: string;
+}
 
-    useEffect(() => {
-        const handleResize = () => {
-            if (window.innerWidth >= 1024) {
-                setIsSidebarOpen(true);
-            } else {
-                setIsSidebarOpen(false);
-            }
-        };
-
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
+const Layout: React.FC<LayoutProps> = ({ children, isOpen, onToggle, onSelectChat, activeChatId }) => {
     return (
-        <LayoutContainer>
+        <div className="app-container">
             <Sidebar 
-                isOpen={isSidebarOpen} 
-                onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                isOpen={isOpen} 
+                onToggle={onToggle}
+                onSelectChat={onSelectChat}
+                activeChatId={activeChatId}
             />
-            <MainContent $isSidebarOpen={isSidebarOpen}>
-                <Outlet />
-            </MainContent>
-        </LayoutContainer>
+            <main className={`main-content ${isOpen ? 'sidebar-open' : ''}`}>
+                {children}
+            </main>
+        </div>
     );
 };
-
-const LayoutContainer = styled.div`
-    display: flex;
-    min-height: 100vh;
-    background-color: white;
-`;
-
-const MainContent = styled.main<{ $isSidebarOpen: boolean }>`
-    flex: 1;
-    margin-left: ${props => props.$isSidebarOpen ? '240px' : '0'};
-    transition: margin-left 0.3s ease;
-    background-color: white;
-    
-    @media (max-width: 1024px) {
-        margin-left: 0;
-    }
-`;
 
 export default Layout;
 

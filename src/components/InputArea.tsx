@@ -76,7 +76,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
             <Form onSubmit={handleSubmit}>
                 <Input
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
                     placeholder="이력서에 대해 자유롭게 이야기해주세요..."
                 />
                 <Button type="submit" disabled={!input.trim()}>

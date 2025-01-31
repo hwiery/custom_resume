@@ -4,9 +4,8 @@ class ChatService {
     private static instance: ChatService;
     private readonly TEMP_CHAT_KEY = 'tempChat';
     private readonly INITIAL_MESSAGE: Message = {
-        id: 1,
-        text: "안녕하세요! 저는 당신의 이력서 작성을 도와드릴 AI 어시스턴트입니다. 어떤 도움이 필요하신가요?",
-        sender: 'RESUMER',
+        role: 'assistant',
+        content: "안녕하세요! 저는 당신의 이력서 작성을 도와드릴 AI 어시스턴트입니다. 어떤 도움이 필요하신가요?",
         timestamp: new Date()
     };
 

@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
+import { CredentialResponse } from '@react-oauth/google';
 
 interface User {
     email: string;
@@ -10,7 +12,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
-    login: (credentialResponse: any) => Promise<void>;
+    login: (credentialResponse: CredentialResponse) => Promise<void>;
     logout: () => void;
 }
 
@@ -22,62 +24,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    const login = async (credentialResponse: any) => {
+    const handleGoogleResponse = async (response: CredentialResponse) => {
         try {
-            console.log('로그인 시도:', credentialResponse);
-            
-            // 서버에 구글 인증 정보 전송
-            const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    credential: credentialResponse.credential 
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('서버 로그인 실패:', errorData);
-                throw new Error(errorData.error || '로그인 실패');
+            if (!response.credential) {
+                console.error('인증 정보가 없습니다.');
+                return;
             }
 
-            const data = await response.json();
-            console.log('서버 응답:', data);
+            console.log('로그인 시도:', response);
+            const result = await axios.post(`${API_BASE_URL}/api/auth/google`, {
+                credential: response.credential
+            });
             
-            if (data.success && data.data.token) {
-                // 토큰 저장
-                localStorage.setItem('token', data.data.token);
-                
-                // 사용자 정보 저장
-                const userData: User = {
-                    email: data.data.user.email,
-                    name: data.data.user.name,
-                    picture: data.data.user.picture,
-                    googleId: data.data.user.googleId
-                };
-                
-                setUser(userData);
+            console.log('서버 응답:', result.data);
+            
+            if (result.data.success) {
+                localStorage.setItem('token', response.credential);
+                setUser(result.data.data.user);
                 setIsAuthenticated(true);
-                localStorage.setItem('user', JSON.stringify(userData));
+                localStorage.setItem('user', JSON.stringify(result.data.data.user));
                 localStorage.setItem('isAuthenticated', 'true');
-                
                 console.log('로그인 성공:', {
-                    user: userData,
+                    user: result.data.data.user,
                     isAuthenticated: true,
                     hasToken: true
                 });
             }
         } catch (error) {
             console.error('로그인 실패:', error);
-            // 에러 발생 시 상태 초기화
             setUser(null);
             setIsAuthenticated(false);
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             localStorage.removeItem('isAuthenticated');
-            throw error;
         }
     };
 
@@ -112,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, login: handleGoogleResponse, logout }}>
             {children}
         </AuthContext.Provider>
     );

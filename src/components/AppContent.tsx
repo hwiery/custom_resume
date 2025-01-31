@@ -11,10 +11,7 @@ const AppContent: React.FC = () => {
     return (
         <div className="main-content">
             <ChatInterface 
-                isLoggedIn={isAuthenticated} 
-                onLogin={() => {
-                    setShowLoginModal(false);
-                }} 
+                selectedChatId="new"
             />
             <LoginModal 
                 isOpen={showLoginModal}

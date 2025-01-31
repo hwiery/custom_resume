@@ -1,6 +1,8 @@
 export interface Message {
-    id: number;
-    text: string;
-    sender: 'RESUMER' | 'user';
+    id?: number;
+    role: 'user' | 'assistant';
+    content: string;
+    text?: string;
+    sender?: string;
     timestamp: Date;
 } 

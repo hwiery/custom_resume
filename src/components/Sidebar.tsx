@@ -1,23 +1,112 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { FaBars, FaPlus, FaCog, FaSignOutAlt, FaFileAlt, FaShieldAlt, FaEnvelope } from 'react-icons/fa';
 import { GoogleLogin } from '@react-oauth/google';
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import SettingsModal from './SettingsModal';
+import styled from 'styled-components';
+import axios from '../api/axios';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
+
+interface ChatHistory {
+    _id: string;
+    title: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+const SidebarContainer = styled.div`
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    background-color: #f3f4f6;
+    border-right: 1px solid #e5e7eb;
+    padding: 20px;
+    overflow-y: auto;
+`;
+
+const NewChatButton = styled.button`
+    width: 100%;
+    padding: 12px;
+    background-color: #0A66C2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: #004182;
+    }
+`;
+
+const ChatListContainer = styled.div`
+    margin-top: 20px;
+    margin-bottom: 20px;
+`;
+
+const ChatListTitle = styled.h3`
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 12px;
+    padding: 0 12px;
+`;
+
+const ChatList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const ChatItem = styled.div<{ isActive: boolean }>`
+    padding: 12px;
+    background-color: ${props => props.isActive ? '#e5e7eb' : 'white'};
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: #e5e7eb;
+    }
+`;
+
+const ChatTitle = styled.div`
+    font-weight: 500;
+    margin-bottom: 4px;
+`;
+
+const ChatDate = styled.div`
+    font-size: 12px;
+    color: #6b7280;
+`;
+
+const EmptyState = styled.div`
+    text-align: center;
+    color: #6b7280;
+    margin-top: 20px;
+`;
 
 interface SidebarProps {
     isOpen: boolean;
     onToggle: () => void;
+    onSelectChat: (chatId: string) => void;
+    activeChatId?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onSelectChat, activeChatId }) => {
     const { isAuthenticated, user, login, logout } = useAuth();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
 
     const handleNewChat = () => {
-        console.log("New chat started");
+        onSelectChat('new');
     };
 
     const handleLogoutClick = () => {
@@ -39,6 +128,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     const handleSettingsClick = () => {
         setShowUserMenu(false);
         setShowSettingsModal(true);
+    };
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchChatHistory();
+        }
+    }, [isAuthenticated]);
+
+    const fetchChatHistory = async () => {
+        try {
+            const response = await axios.get('/api/chat');
+            if (response.data.success) {
+                setChatHistory(response.data.data);
+            }
+        } catch (error) {
+            console.error('채팅 히스토리 로드 실패:', error);
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        return format(new Date(dateString), 'MM월 dd일 HH:mm', { locale: ko });
     };
 
     return (
@@ -194,6 +304,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                             <button className="new-chat-button" onClick={handleNewChat}>
                                 <FaPlus /> New Story
                             </button>
+
+                            <ChatListContainer>
+                                <ChatListTitle>대화 기록</ChatListTitle>
+                                {chatHistory.length > 0 ? (
+                                    chatHistory.map((chat) => (
+                                        <ChatItem
+                                            key={chat._id}
+                                            isActive={activeChatId === chat._id}
+                                            onClick={() => onSelectChat(chat._id)}
+                                        >
+                                            <ChatTitle>{chat.title}</ChatTitle>
+                                            <ChatDate>{formatDate(chat.updatedAt)}</ChatDate>
+                                        </ChatItem>
+                                    ))
+                                ) : (
+                                    <EmptyState>
+                                        아직 대화 내역이 없습니다.
+                                    </EmptyState>
+                                )}
+                            </ChatListContainer>
                         </div>
 
                         <div className="sidebar-links">

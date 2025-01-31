@@ -4,14 +4,26 @@ import { Message } from '../types/message';
 // API 기본 설정
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-const deepseekApi = axios.create({
+const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
-        'Content-Type': 'application/json',
-    },
-    timeout: 30000,
-    withCredentials: true
+        'Content-Type': 'application/json'
+    }
 });
+
+// 인터셉터 추가
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token && config.headers) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface ChatMessage {
@@ -53,37 +65,60 @@ const rateLimiter = {
 };
 
 export const getChatResponse = async (messages: Message[]): Promise<string> => {
-    try {
-        const chatMessages = messages.map(msg => ({
-            role: msg.sender === 'user' ? 'user' : 'assistant',
-            content: msg.text
-        }));
+    let retries = 0;
 
-        console.log('Sending request to proxy');
-        console.log('Request payload:', {
-            model: "deepseek-chat",
-            messages: chatMessages
-        });
+    while (retries < MAX_RETRIES) {
+        try {
+            console.log('API 요청 시도:', {
+                messages: messages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }))
+            });
 
-        const response = await deepseekApi.post('/api/chat/proxy/deepseek', {
-            model: "deepseek-chat",
-            messages: chatMessages,
-            temperature: 0.7,
-            max_tokens: 1000
-        });
+            const response = await api.post('/api/chat/proxy/deepseek', {
+                messages: messages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }))
+            });
 
-        console.log('API Response:', response.data);
-        
-        if (!response.data.choices || !response.data.choices[0]) {
+            console.log('API 응답 수신:', response.data);
+
+            if (response.data.choices && response.data.choices[0]) {
+                return response.data.choices[0].message.content;
+            }
+
             throw new Error('Invalid response format from API');
-        }
+        } catch (error) {
+            const axiosError = error as AxiosError;
+            console.error('Chat API 요청 실패:', error);
+            
+            if (axiosError.response?.status === 401) {
+                throw new Error('인증이 필요합니다.');
+            }
+            
+            if (axiosError.response?.status === 429) {
+                console.log(`Rate limit exceeded, waiting ${RETRY_DELAY}ms`);
+                await sleep(RETRY_DELAY);
+                retries++;
+                continue;
+            }
 
-        return response.data.choices[0].message.content;
-    } catch (error) {
-        const axiosError = error as AxiosError;
-        console.error('Error getting response:', axiosError);
-        throw new Error(`API 오류: ${axiosError.message}`);
+            if (axiosError.response?.status === 500) {
+                if (retries < MAX_RETRIES - 1) {
+                    console.log(`서버 오류, 재시도 중... (${retries + 1}/${MAX_RETRIES})`);
+                    await sleep(RETRY_DELAY);
+                    retries++;
+                    continue;
+                }
+            }
+
+            throw error;
+        }
     }
+
+    throw new Error('최대 재시도 횟수를 초과했습니다.');
 };
 
 const getChatResponseWithRetry = async (messages: Message[]): Promise<string> => {
@@ -98,7 +133,7 @@ const getChatResponseWithRetry = async (messages: Message[]): Promise<string> =>
             }));
 
             // API 엔드포인트 경로 수정
-            const response = await deepseekApi.post('/v1/chat/completions', {
+            const response = await api.post('/v1/chat/completions', {
                 model: "deepseek-chat",
                 messages: chatMessages,
                 temperature: 0.7,  // 응답의 창의성 조절

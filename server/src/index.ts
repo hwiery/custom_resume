@@ -12,17 +12,20 @@ const app = express();
 
 // Rate Limiting
 const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100')
+    windowMs: 15 * 60 * 1000, // 15분
+    max: 1000, // 15분 동안 최대 1000개의 요청 허용
+    message: { 
+        success: false, 
+        error: '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.' 
+    }
 });
 
 // 미들웨어
 app.use(cors({
-    origin: ['http://localhost:3000'],
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    maxAge: 86400 // OPTION 요청 캐시 시간: 24시간
+    credentials: true
 }));
 app.use(express.json());
 app.use(limiter);

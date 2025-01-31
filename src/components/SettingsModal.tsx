@@ -68,7 +68,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
     return (
         <ModalOverlay isOpen={isOpen} onClick={onClose}>
-            <ModalContent onClick={e => e.stopPropagation()}>
+            <ModalContent onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
                 <ModalHeader>
                     <Title>설정</Title>
                     <CloseButton onClick={onClose}>
