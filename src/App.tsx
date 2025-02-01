@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import AppContent from './components/AppContent';
+import { AuthProvider } from './context/AuthContext';
 import Contact from './pages/Contact';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
@@ -11,16 +10,6 @@ import Login from './pages/Login';
 import './styles/chat.css';
 import './styles/sidebar.css';
 import ChatInterface from './components/ChatInterface';
-
-const PrivateRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
-    const { isAuthenticated } = useAuth();
-    return isAuthenticated ? element : <Navigate to="/login" />;
-};
-
-const PublicRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
-    const { isAuthenticated } = useAuth();
-    return isAuthenticated ? <Navigate to="/" /> : element;
-};
 
 const App: React.FC = () => {
     const [selectedChatId, setSelectedChatId] = useState<string>('new');
@@ -48,22 +37,18 @@ const App: React.FC = () => {
             <AuthProvider>
                 <Router>
                     <Routes>
-                        <Route path="/login" element={<PublicRoute element={<Login />} />} />
+                        <Route path="/login" element={<Login />} />
                         <Route
                             path="/"
                             element={
-                                <PrivateRoute
-                                    element={
-                                        <Layout
-                                            isOpen={isSidebarOpen}
-                                            onToggle={toggleSidebar}
-                                            onSelectChat={handleChatSelect}
-                                            activeChatId={selectedChatId}
-                                        >
-                                            <ChatInterface selectedChatId={selectedChatId} />
-                                        </Layout>
-                                    }
-                                />
+                                <Layout
+                                    isOpen={isSidebarOpen}
+                                    onToggle={toggleSidebar}
+                                    onSelectChat={handleChatSelect}
+                                    activeChatId={selectedChatId}
+                                >
+                                    <ChatInterface selectedChatId={selectedChatId} />
+                                </Layout>
                             }
                         />
                         <Route path="/terms" element={<Terms />} />

@@ -8,19 +8,44 @@ const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json'
-    }
+    },
+    withCredentials: true,
+    timeout: 30000 // 30초 타임아웃
 });
 
 // 인터셉터 추가
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
+        const guestToken = localStorage.getItem('guestToken');
+        
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
+        } else if (guestToken && config.headers) {
+            config.headers.Authorization = `Guest ${guestToken}`;
+        } else {
+            // 게스트 토큰이 없는 경우 새로 생성
+            const newGuestToken = Math.random().toString(36).substring(7);
+            localStorage.setItem('guestToken', newGuestToken);
+            if (config.headers) {
+                config.headers.Authorization = `Guest ${newGuestToken}`;
+            }
         }
         return config;
     },
     (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// 응답 인터셉터 추가
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        if (error.code === 'ERR_NETWORK') {
+            console.error('네트워크 오류:', error);
+            throw new Error('서버에 연결할 수 없습니다. 인터넷 연결을 확인해주세요.');
+        }
         return Promise.reject(error);
     }
 );
@@ -69,6 +94,10 @@ export const getChatResponse = async (messages: Message[]): Promise<string> => {
 
     while (retries < MAX_RETRIES) {
         try {
+            // 게스트 채팅 카운트 가져오기
+            const guestChatCount = parseInt(localStorage.getItem('guestChatCount') || '0');
+            const guestToken = localStorage.getItem('guestToken');
+
             console.log('API 요청 시도:', {
                 messages: messages.map(msg => ({
                     role: msg.role,
@@ -81,44 +110,55 @@ export const getChatResponse = async (messages: Message[]): Promise<string> => {
                     role: msg.role,
                     content: msg.content
                 }))
+            }, {
+                headers: {
+                    'x-guest-token': guestToken || '',
+                    'x-guest-chat-count': guestChatCount.toString()
+                }
             });
 
-            console.log('API 응답 수신:', response.data);
+            // 게스트 채팅 카운트 업데이트
+            if (!localStorage.getItem('token')) {
+                localStorage.setItem('guestChatCount', (guestChatCount + 1).toString());
+            }
 
             if (response.data.choices && response.data.choices[0]) {
+                // 채팅 내용 임시 저장
+                const chatHistory = JSON.parse(localStorage.getItem('guestChatHistory') || '[]');
+                chatHistory.push({
+                    messages: messages,
+                    timestamp: new Date().toISOString()
+                });
+                localStorage.setItem('guestChatHistory', JSON.stringify(chatHistory));
+
                 return response.data.choices[0].message.content;
             }
 
-            throw new Error('Invalid response format from API');
+            throw new Error('서버 응답 형식이 올바르지 않습니다.');
         } catch (error) {
-            const axiosError = error as AxiosError;
             console.error('Chat API 요청 실패:', error);
             
-            if (axiosError.response?.status === 401) {
-                throw new Error('인증이 필요합니다.');
-            }
-            
-            if (axiosError.response?.status === 429) {
-                console.log(`Rate limit exceeded, waiting ${RETRY_DELAY}ms`);
-                await sleep(RETRY_DELAY);
-                retries++;
-                continue;
-            }
-
-            if (axiosError.response?.status === 500) {
-                if (retries < MAX_RETRIES - 1) {
-                    console.log(`서버 오류, 재시도 중... (${retries + 1}/${MAX_RETRIES})`);
-                    await sleep(RETRY_DELAY);
-                    retries++;
-                    continue;
+            if (error instanceof Error) {
+                if (error.message === '서버에 연결할 수 없습니다. 인터넷 연결을 확인해주세요.') {
+                    if (retries < MAX_RETRIES - 1) {
+                        console.log(`서버 연결 재시도 중... (${retries + 1}/${MAX_RETRIES})`);
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+                        retries++;
+                        continue;
+                    }
                 }
             }
 
-            throw error;
+            const axiosError = error as AxiosError;
+            if (axiosError.response?.status === 403) {
+                throw new Error('채팅 횟수 제한에 도달했습니다. 로그인 후 이용해주세요.');
+            }
+            
+            throw new Error('채팅 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         }
     }
 
-    throw new Error('최대 재시도 횟수를 초과했습니다.');
+    throw new Error('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
 };
 
 const getChatResponseWithRetry = async (messages: Message[]): Promise<string> => {

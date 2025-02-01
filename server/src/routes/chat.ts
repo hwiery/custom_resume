@@ -1,9 +1,8 @@
 import express, { Request, Response, Router, NextFunction } from 'express';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, AuthRequest, auth } from '../middleware/auth';
 import Chat from '../models/Chat';
 import mongoose from 'mongoose';
 import axios from 'axios';
-import { AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -190,28 +189,28 @@ router.post('/:chatId/messages', authenticateToken, async (req: AuthRequest, res
     }
 });
 
-// Deepseek API 프록시 엔드포인트
-router.post('/proxy/deepseek', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+// DeepSeek 프록시 엔드포인트
+router.post('/proxy/deepseek', auth, async (req: AuthRequest, res: Response) => {
     try {
-        if (!req.user) {
-            res.status(401).json({ success: false, error: '인증이 필요합니다.' });
-            return;
+        const guestToken = req.headers['x-guest-token'] as string;
+        const guestChatCount = parseInt(req.headers['x-guest-chat-count'] as string || '0');
+
+        // 게스트 사용자 처리
+        if (!req.user && guestToken) {
+            if (guestChatCount >= 3) {
+                return res.status(403).json({
+                    success: false,
+                    message: '게스트 사용자는 3회까지만 채팅이 가능합니다. 로그인 후 이용해주세요.'
+                });
+            }
+            // 게스트 채팅 카운트 증가
+            res.setHeader('x-guest-chat-count', (guestChatCount + 1).toString());
         }
 
         const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
-        
         if (!DEEPSEEK_API_KEY) {
-            console.error('Deepseek API 키가 설정되지 않았습니다.');
-            res.status(500).json({
-                success: false,
-                error: 'API 키가 설정되지 않았습니다.'
-            });
-            return;
+            throw new Error('DeepSeek API 키가 설정되지 않았습니다.');
         }
-
-        console.log('프록시 요청 수신:', {
-            messages: req.body.messages
-        });
 
         const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
             model: "deepseek-chat",
@@ -225,35 +224,19 @@ router.post('/proxy/deepseek', authenticateToken, async (req: AuthRequest, res: 
             }
         });
 
-        console.log('프록시 응답 수신:', response.data);
         res.json(response.data);
-    } catch (error: any) {
-        console.error('Deepseek API 프록시 오류:', error.response?.data || error.message, {
-            status: error.response?.status,
-            headers: error.response?.headers,
-            data: error.response?.data
-        });
-        
-        if (error.response?.status === 401) {
-            res.status(401).json({ 
-                success: false, 
-                error: 'API 키가 유효하지 않습니다.' 
+    } catch (error) {
+        console.error('DeepSeek API 오류:', error);
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+            res.status(401).json({
+                success: false,
+                message: 'API 인증에 실패했습니다.'
             });
             return;
         }
-
-        if (error.response?.status === 429) {
-            res.status(429).json({ 
-                success: false, 
-                error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' 
-            });
-            return;
-        }
-
-        res.status(error.response?.status || 500).json({ 
-            success: false, 
-            error: 'Deepseek API 요청 실패',
-            details: error.response?.data || error.message
+        res.status(500).json({
+            success: false,
+            message: '채팅 처리 중 오류가 발생했습니다.'
         });
     }
 });

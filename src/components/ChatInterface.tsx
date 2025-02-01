@@ -13,6 +13,7 @@ import axios from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import InputArea from './InputArea';
 import { GoogleLogin } from '@react-oauth/google';
+import { useNavigate } from 'react-router-dom';
 
 interface ChatInterfaceProps {
     selectedChatId?: string;
@@ -24,22 +25,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChatId }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [chatCount, setChatCount] = useState<number>(0);
-    const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
-    const [forceLogin, setForceLogin] = useState<boolean>(false);
+    const [showLoginModal, setShowLoginModal] = useState(false);
     const sessionId = useRef(uuidv4());
     const messageListRef = useRef<HTMLDivElement>(null);
     const { isAuthenticated } = useAuth();
     const [currentChat, setCurrentChat] = useState<Chat | null>(null);
-
-    // 로그인 상태와 토큰 확인
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        console.log('로그인 상태 확인:', {
-            isLoggedIn: !!token,
-            hasToken: !!token,
-            tokenPreview: token ? `${token.substring(0, 10)}...` : 'none'
-        });
-    }, []);
+    const navigate = useNavigate();
 
     // 자동 스크롤 기능
     const scrollToBottom = () => {
@@ -90,88 +81,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChatId }) => {
         }
     };
 
-    const handleMessageSend = async (text: string) => {
-        const newMessage: Message = {
-            role: 'user',
-            content: text,
-            timestamp: new Date()
-        };
-
-        setMessages(prev => [...prev, newMessage]);
-        setIsLoading(true);
-
-        try {
-            if (isAuthenticated) {
-                if (!currentChat) {
-                    // 새로운 채팅 시작
-                    const response = await axios.post('/api/chat', {
-                        title: text.substring(0, 50) + '...',
-                        message: text
-                    });
-
-                    if (response.data.success) {
-                        setCurrentChat(response.data.data);
-                        setMessages([newMessage]);
-                    }
-                } else {
-                    // 기존 채팅에 메시지 추가
-                    const response = await axios.post(`/api/chat/${currentChat._id}/messages`, {
-                        role: 'user',
-                        content: text
-                    });
-
-                    if (response.data.success) {
-                        setMessages([...messages, newMessage]);
-                    }
-                }
-
-                // AI 응답 처리
-                const aiResponse = await getChatResponse([...messages, newMessage]);
-
-                const assistantMessage: Message = {
-                    role: 'assistant',
-                    content: aiResponse,
-                    timestamp: new Date()
-                };
-
-                if (currentChat) {
-                    await axios.post(`/api/chat/${currentChat._id}/messages`, {
-                        role: 'assistant',
-                        content: assistantMessage.content
-                    });
-                }
-
-                setMessages(prev => [...prev, assistantMessage]);
-            } else {
-                const errorMessage: Message = {
-                    role: 'assistant',
-                    content: "로그인이 필요한 서비스입니다.",
-                    timestamp: new Date()
-                };
-                setMessages(prev => [...prev, errorMessage]);
-            }
-        } catch (error) {
-            console.error('Error getting response:', error);
-            const errorMessage: Message = {
-                role: 'assistant',
-                content: "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-                timestamp: new Date()
-            };
-            setMessages(prev => [...prev, errorMessage]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleLoginSuccess = () => {
-        setShowLoginModal(false);
-        setForceLogin(false);
-        setChatCount(0);
-    };
-
     const handleSendMessage = async (message: string) => {
-        if (!isAuthenticated) {
-            console.log('로그인이 필요합니다.');
+        if (!isAuthenticated && chatCount >= 3) {
+            setShowLoginModal(true);
             return;
         }
 
@@ -187,8 +99,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChatId }) => {
         try {
             let chatId = currentChat?._id;
 
+            if (!isAuthenticated) {
+                setChatCount(prev => prev + 1);
+                const aiResponse = await getChatResponse([...messages, newMessage]);
+                const assistantMessage: Message = {
+                    role: 'assistant',
+                    content: aiResponse,
+                    timestamp: new Date()
+                };
+                setMessages(prev => [...prev, assistantMessage]);
+                return;
+            }
+
             if (!chatId) {
-                // 새로운 채팅 시작
                 const chatResponse = await axios.post('/api/chat', {
                     title: message.substring(0, 50) + '...'
                 });
@@ -201,13 +124,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChatId }) => {
                 setCurrentChat(chatResponse.data.data);
             }
 
-            // 메시지 추가
             await axios.post(`/api/chat/${chatId}/messages`, {
                 role: 'user',
                 content: message
             });
 
-            // AI 응답 처리
             const aiResponse = await getChatResponse([...messages, newMessage]);
             
             const assistantMessage: Message = {
@@ -252,42 +173,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChatId }) => {
         }
     };
 
-    const renderContent = () => {
-        if (!isAuthenticated) {
-            return (
-                <LoginContainer>
-                    <LoginContent>
-                        <LoginTitle>이력서 작성을 시작하려면 로그인이 필요합니다</LoginTitle>
-                        <GoogleLogin
-                            onSuccess={handleGoogleSuccess}
-                            onError={() => console.error('로그인 실패')}
-                            useOneTap
-                        />
-                    </LoginContent>
-                </LoginContainer>
-            );
-        }
-
-        return (
-            <>
-                <MainContent ref={messageListRef}>
-                    <Header>
-                        <Title>Tell me your story.</Title>
-                    </Header>
-                    <MessageList messages={messages} isLoading={isLoading} />
-                </MainContent>
-                <InputContainer>
-                    <InputWrapper>
-                        <InputArea onSubmit={handleSendMessage} />
-                    </InputWrapper>
-                </InputContainer>
-            </>
-        );
-    };
-
     return (
         <ChatContainer>
-            {renderContent()}
+            <MainContent ref={messageListRef}>
+                <Header>
+                    <Title>Tell me your story.</Title>
+                </Header>
+                <MessageList messages={messages} isLoading={isLoading} />
+            </MainContent>
+            <InputContainer>
+                <InputWrapper>
+                    <InputArea onSubmit={handleSendMessage} />
+                </InputWrapper>
+            </InputContainer>
+            <LoginModal 
+                isOpen={showLoginModal}
+                onClose={() => setShowLoginModal(false)}
+                onSuccess={() => {
+                    setShowLoginModal(false);
+                    setChatCount(0);
+                }}
+                forceLogin={true}
+            />
         </ChatContainer>
     );
 };

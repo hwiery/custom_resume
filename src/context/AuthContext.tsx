@@ -33,12 +33,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             console.log('로그인 시도:', response);
             const result = await axios.post(`${API_BASE_URL}/api/auth/google`, {
-                credential: response.credential
+                credential: response.credential,
+                guestChatHistory: localStorage.getItem('guestChatHistory')
             });
             
             console.log('서버 응답:', result.data);
             
             if (result.data.success) {
+                localStorage.removeItem('guestToken');
+                localStorage.removeItem('guestChatCount');
+                localStorage.removeItem('guestChatHistory');
+
                 localStorage.setItem('token', response.credential);
                 setUser(result.data.data.user);
                 setIsAuthenticated(true);
