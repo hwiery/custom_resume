@@ -387,7 +387,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onSelectChat, activ
                                 </div>
                             </div>
                         </div>
-                        <div className="sidebar-links" style={{ marginTop: 'auto' }}>
+                        <div className="sidebar-links">
                             <Link to="/contact" className="sidebar-link">
                                 <FaEnvelope /> Contact Us
                             </Link>

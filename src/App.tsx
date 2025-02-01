@@ -33,7 +33,15 @@ const App: React.FC = () => {
     }, []);
 
     return (
-        <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
+        <GoogleOAuthProvider 
+            clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}
+            onScriptLoadError={() => {
+                console.error('Google OAuth 스크립트 로드 실패');
+            }}
+            onScriptLoadSuccess={() => {
+                console.log('Google OAuth 스크립트 로드 성공');
+            }}
+        >
             <AuthProvider>
                 <Router>
                     <Routes>
