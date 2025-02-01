@@ -9,10 +9,20 @@ interface MessageListProps {
 }
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
+    const getMessageKey = (message: Message, index: number) => {
+        // timestamp가 string인 경우 Date 객체로 변환
+        const timestamp = typeof message.timestamp === 'string' 
+            ? new Date(message.timestamp).getTime() 
+            : message.timestamp instanceof Date 
+                ? message.timestamp.getTime() 
+                : index;
+        return `message-${timestamp}-${index}`;
+    };
+
     return (
         <MessageListContainer>
             {messages.map((message, index) => (
-                <MessageItem key={`${message.timestamp.getTime()}-${index}`} className={message.role}>
+                <MessageItem key={getMessageKey(message, index)} className={message.role}>
                     {message.role === 'assistant' && (
                         <IconWrapper>
                             <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
@@ -74,10 +84,11 @@ const IconWrapper = styled.div`
 
 const MessageBubble = styled.div<{ $isUser: boolean }>`
     max-width: 70%;
-    background-color: ${props => props.$isUser ? '#0A66C2' : '#F0F2F5'};
+    background-color: ${props => props.$isUser ? '#0A66C2' : '#FFFFFF'};
     color: ${props => props.$isUser ? 'white' : '#1C1E21'};
     padding: 1rem;
     border-radius: ${props => props.$isUser ? '1rem 1rem 0 1rem' : '1rem 1rem 1rem 0'};
+    border: ${props => props.$isUser ? 'none' : '1px solid #666666'};
 `;
 
 const MessageText = styled.div`

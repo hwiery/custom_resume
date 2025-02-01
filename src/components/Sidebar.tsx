@@ -306,7 +306,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onSelectChat, activ
                             </button>
 
                             <ChatListContainer>
-                                <ChatListTitle>대화 기록</ChatListTitle>
+                                <ChatListTitle>History</ChatListTitle>
                                 {chatHistory.length > 0 ? (
                                     chatHistory.map((chat) => (
                                         <ChatItem
