@@ -53,22 +53,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChatId }) => {
 
     // 초기 메시지 설정
     useEffect(() => {
-        const savedMessages = ChatService.loadTempChat(sessionId.current);
-        setMessages(savedMessages);
-    }, []);
+        if (!selectedChatId || selectedChatId === 'new') {
+            const initialMessages = ChatService.loadTempChat(sessionId.current);
+            setMessages(initialMessages);
+        }
+    }, [selectedChatId]);
 
     // 메시지가 변경될 때마다 임시 저장
     useEffect(() => {
-        if (messages.length > 0) {
+        if ((!selectedChatId || selectedChatId === 'new') && messages.length > 0) {
             ChatService.saveTempChat(sessionId.current, messages);
         }
-    }, [messages]);
+    }, [messages, selectedChatId]);
 
     useEffect(() => {
         if (isAuthenticated && selectedChatId && selectedChatId !== 'new') {
             loadChat(selectedChatId);
-        } else {
-            setMessages([]);
+        } else if (selectedChatId === 'new') {
+            const initialMessages = ChatService.loadTempChat(sessionId.current);
+            setMessages(initialMessages);
             setCurrentChat(null);
         }
     }, [selectedChatId, isAuthenticated]);
