@@ -49,7 +49,7 @@
 .message-container {
     display: flex;
     flex-direction: column;
-    max-width: 70%;
+    max-width: 80%;
     animation: fadeIn 0.3s ease-in-out;
 }
 

@@ -65,6 +65,7 @@ const InputForm = styled.form`
     align-items: right;
     position: relative;
     width: 100%;
+    min-width: 500px;
     margin: 0 auto;
 `;
 

@@ -29,7 +29,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
                         <img src={LogoIcon} alt="RESUMER" width="24" height="24" />
                     </IconWrapper>
                     <MessageBubble $isUser={false}>
-                        <LoadingDots>
+                        <LoadingDots>       
                             <span>.</span><span>.</span><span>.</span>
                         </LoadingDots>
                     </MessageBubble>

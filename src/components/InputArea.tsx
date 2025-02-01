@@ -7,29 +7,24 @@ interface InputAreaProps {
 }
 
 const InputContainer = styled.div`
-    position: fixed;
-    bottom: 0;
-    left: 280px;
-    right: 0;
-    padding: 20px 40px;
-    background-color: white;
-    border-top: 1px solid #e5e7eb;
+    width: 100%;
+    height: auto;
+    min-height: 72px;
     display: flex;
     justify-content: center;
+    align-items: center;
 `;
 
 const Form = styled.form`
-    display: flex;
     position: relative;
     width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
+    height: auto;
 `;
 
 const TextArea = styled.textarea`
     width: 100%;
-    min-height: 60px;
-    max-height: 200px;
+    min-height: 72px; // 3줄 기본 높이
+    max-height: 240px; // 10줄 최대 높이
     padding: 16px 50px 16px 16px;
     background-color: #FFFFF0;
     border: 1px solid #e5e7eb;
@@ -38,37 +33,54 @@ const TextArea = styled.textarea`
     line-height: 1.5;
     resize: none;
     outline: none;
-    transition: border-color 0.2s;
+    transition: all 0.2s ease;
     overflow-y: auto;
 
     &:focus {
-        border-color: #0A66C2;
+        border-color: #e5e7eb;
+    }
+
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #ddd;
+        border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: #ccc;
     }
 `;
 
 const Button = styled.button`
     position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 30px;
+    top: 35%;
     background: none;
     border: none;
-    color: #0A66C2;
+    
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: left;
     padding: 8px;
-    border-radius: 50%;
+    padding-right: 20px;
+    border-radius: 20%;
     transition: background-color 0.2s;
 
     &:hover {
-        background-color: rgba(10, 102, 194, 0.1);
+        background-color: #FFFFF0;
     }
 
     &:disabled {
         color: #ccc;
-        cursor: not-allowed;
+        
     }
 
     svg {
@@ -88,15 +100,16 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
             // 입력창 높이 초기화
             const textarea = document.querySelector('textarea');
             if (textarea) {
-                textarea.style.height = '60px';
+                textarea.style.height = '72px';
             }
         }
     };
 
     const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInput(e.target.value);
-        e.target.style.height = '60px';
-        e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+        e.target.style.height = '72px';
+        const newHeight = Math.min(e.target.scrollHeight, 240);
+        e.target.style.height = `${newHeight}px`;
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -116,7 +129,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit }) => {
                     onChange={handleTextAreaChange}
                     onKeyDown={handleKeyDown}
                     placeholder="이력서에 대해 자유롭게 이야기해주세요..."
-                    rows={1}
+                    rows={3}
                 />
                 <Button type="submit" disabled={!input.trim()}>
                     <IoEnterOutline />

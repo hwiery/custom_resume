@@ -241,10 +241,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChatId }) => {
                     <Title>Tell me your story.</Title>
                 </Header>
                 <MessageList messages={messages} isLoading={isLoading} />
-                <InputContainer>
-                    <InputArea onSubmit={handleSendMessage} />
-                </InputContainer>
             </MainContent>
+            <InputContainer>
+                <InputWrapper>
+                    <InputArea onSubmit={handleSendMessage} />
+                </InputWrapper>
+            </InputContainer>
             <LoginModal
                 isOpen={showLoginModal}
                 onClose={() => setShowLoginModal(false)}
@@ -258,26 +260,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChatId }) => {
 const ChatContainer = styled.div`
     display: flex;
     flex-direction: column;
-    width: calc(100% - 280px);
-    max-width: 760px;
-    margin: 0 auto;
-    min-height: 100vh;
+    width: 100%;
+    height: 100vh;
     position: relative;
     background-color: white;
-    
-    @media (max-width: 1024px) {
-        width: 100%;
-    }
 `;
 
 const MainContent = styled.div`
-    width: 100%;
-    display: flex;
-    flex-direction: column;
     flex: 1;
+    width: 100%;
     overflow-y: auto;
     padding-bottom: 120px;
-    height: 100vh;
+    height: calc(100vh - 120px);
     background-color: white;
     
     &::-webkit-scrollbar {
@@ -315,26 +309,21 @@ const Title = styled.h1`
 const InputContainer = styled.div`
     position: fixed;
     bottom: 0;
-    left: 65%;
-    transform: translateX(-50%);
+    left: 280px;
     width: calc(100% - 280px);
-    max-width: 760px;
-    height: auto;
-    min-height: 120px;
     background: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 100;
-    
-    @media (max-width: 1024px) {
-        width: 100%;
-    }
-    
-    & > form {
-        width: 100%;
-        padding: 20px;
-    }
+`;
+
+const InputWrapper = styled.div`
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    position: relative;
 `;
 
 export default ChatInterface;
