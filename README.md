@@ -1,70 +1,58 @@
-# Getting Started with Create React App
+Custom Resume Generator (커스텀 이력서 생성기)
+개요
+커스텀 이력서 생성기는 사용자가 자신의 삶의 경험을 문서화하고, 맞춤형 이력서를 작성하며, 이력서를 생성할 수 있도록 돕는 Python 기반 애플리케이션입니다. 이 애플리케이션은 Python 기반으로 하고, 입력을 위해 Markdown 파일을 사용하며, PDF 및 DOCX와 같은 형식으로 자동 생성합니다.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+서비스 규칙
+히스토리 초안:
 
-## Available Scripts
+자신의 삶의 경험을 작성하고, 업무 관련 및 기억에 남는 사건을 문서화합니다.
+영향을 미친 분야에서의 성과를 기록합니다.
+히스토리 보완 :
 
-In the project directory, you can run:
+작성한 "히스토리 초안"을 바탕으로 어떤 내용이 좀 더 부각되는게 좋을지 점검합니다.
+AI를 활용하여 인사 담당자의 시야로 초안을 보완합니다.
+사용자가 자신의 삶의 경험을 작성하면서 대화하듯 작성하여 AI와의 대화를 통해 얻은 정보를 바탕으로 이력서를 작성하게 됩니다.
+이로인해 예상하지 못했던 기억이나 작은 기록들을 추가할 수 있으며 업무 관련 성과 및 중요한 사건을 빠짐없이 기록할 수 있습니다.
+질문,답변:
 
-### `npm start`
+"히스토리 보완" 문서를 바탕으로 AI가 하는 질문에 대해 구체적으로 답변합니다.
+만들어진 문서를 바탕으로 AI가 질문하게 될 것이고, 사용자가 특정 질문에 대한 답변을 작성하면 더욱 완성도 있는 문서로 만들 수 있습니다.
+답변을 모아 "질문,답변" 문서를 완성합니다.
+이력서 초안:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+"히스토리 보완" 문서와 질문, 답변 응답을 바탕으로 만들어진 "질문,답변" 문서를 준비하고, AI를 통해 프롬프트로 Reference 문서와 비슷한 양식을 갖추면서 이력서 양식으로 생성을 요청하여 "이력서 초안"을 만듭니다.
+커스텀 이력서:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+채용 공고 웹사이트를 방문하여 적절한 채용 공고를 찾습니다.
+발견한 채용 공고의 내용을 문서 "채용공고_{회사명}으로 저장합니다.
+준비된 "이력서 초안"을 "채용공고_{회사명}과 함께 넣고 AI를 통해 채용공고에 최적화된 "커스텀 이력서" 생성을 요청하여 문서를 완성합니다.
+다양한 "채용공고_{회사명}"을 준비하고 다수의 "커스텀 이력서" 문서를 만듭니다.
+파일 생성:
 
-### `npm test`
+create_resume.py 또는 create_resume_pdf.py 스크립트를 터미널에 입력하여 대상 기업명을 포함한 이력서 문서(DOCX, PDF)를 생성합니다.
+자동으로 "생성결과" 폴더에 파일명 "이력서_{이름}_{회사명}.{확장자명}"으로 결과물을 저장합니다.
+같은 회사로 재생성 시 파일을 지우거나 이동한 뒤 스크립트를 사용해야합니다.
+자체 검수
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+AI로 만들어진 이력서는 할루시네이션(왜곡)이 발생할 수 있습니다. 반드시 본인 스스로 재점검하여 실제 내용과 다르게 저장된 내용을 수정하여 최종적으로 검토를 마무리합니다.
+파일 구조
+폴더
+내 정보 모음 폴더 : 내가 작성하고 AI와 함께 보충한 문서가 있는 폴더
+예시 폴더 : 가이드와 함께 예시로 작성된 문서가 있는 폴더
+생성결과 폴더 : "커스텀 이력서" 만들면 결과물이 생성되는 폴더
+자료 폴더 : 채용 업체 웹사이트 링크, Reference 문서, ReadMe 문서가 포함된 폴더
+파일
+create_resume.py: DOCX 형식의 이력서를 생성하는 스크립트. 터미널에 입력하세요.
+create_resume_pdf.py: PDF 형식의 이력서를 생성하는 스크립트.
+시작하기전에
+이 애플리케이션은 Python이라는 개발 언어를 기반으로 만들어졌습니다. 그렇기 때문에 Python을 설치하셔야합니다. 각 컴퓨터 환경에 맞는 버전으로 설치해주시길 바랍니다. Python 로드 링크 : https://www.python.org/downloads/
 
-### `npm run build`
+이 애플리케이션은 Cursor AI의 LLM 모델을 사용하면서 이력서를 만들면 가장 좋습니다. 또한 파이썬 스크립트를 실행하려면 IDE가 있어야하기 때문에 최소한 VS Code는 준비가 되어야합니다. 각 컴퓨터 환경에 맞는 버전으로 설치해주시길 바랍니다. Cursor AI 다운로드 링크 : https://www.cursor.com/downloads
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+DOCX와 PDF 자동 변환을 위한 라이브러리 다운로드가 필요합니다.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+결론
+이 애플리케이션은 개인의 히스토리를 문서화하고 맞춤형 이력서를 생성하는 과정을 간소화하여 사용자가 잠재적인 고용주에게 효과적으로 자격을 제시할 수 있도록 돕는 것을 목표로 합니다.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+주의
+"커스텀 이력서" 애플리케이션은 개발중인 소프트웨어이므로 이에 따라 생성된 결과물로 인하여 발생하는 문제에 대해서 법적 책임을 지지 않습니다. AI 모델의 할루시네이션(왜곡)으로 인하여 거짓 정보가 포함되어 있을 수 있으므로 사용자는 반드시 결과물을 스스로 검토하고 수정 후 사용하시길 바랍니다.
